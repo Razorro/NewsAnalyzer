@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛢️ NewsAnalyzer - RSS新闻监控</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+        
+        :root {
+            --cyber-bg: #0a0a0f;
+            --cyber-card: #0d1117;
+            --cyber-cyan: #00ffff;
+            --cyber-magenta: #ff00ff;
+            --cyber-green: #00ff00;
+            --cyber-orange: #ff6600;
+            --cyber-red: #ff0040;
+            --cyber-yellow: #ffff00;
+            --cyber-border: #30363d;
+            --cyber-text: #e6edf3;
+            --cyber-gray: #8b949e;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--cyber-bg);
+            min-height: 100vh;
+            color: var(--cyber-text);
+            background-image: 
+                linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1));
+            border-bottom: 2px solid var(--cyber-cyan);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            color: var(--cyber-cyan);
+            text-shadow: 0 0 20px var(--cyber-cyan);
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .left-panel {
+            width: 450px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .cyber-card {
+            background: var(--cyber-card);
+            border: 1px solid var(--cyber-border);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .cyber-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-magenta), var(--cyber-green));
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            color: var(--cyber-cyan);
+            margin-bottom: 15px;
+        }
+        
+        /* 主题树状展示 */
+        .theme-tree {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .theme-node {
+            margin-bottom: 12px;
+            border: 2px solid var(--cyber-border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-node.enabled {
+            border-color: var(--cyber-green);
+            background: rgba(0,255,0,0.03);
+        }
+        
+        .theme-node.disabled {
+            border-color: var(--cyber-border);
+            background: rgba(128,128,128,0.05);
+            opacity: 0.7;
+        }
+        
+        .theme-header {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: rgba(0,255,255,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .theme-node.enabled .theme-header {
+            background: rgba(0,255,0,0.08);
+        }
+        
+        .theme-node.disabled .theme-header {
+            background: rgba(128,128,128,0.1);
+        }
+        
+        .theme-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .theme-status.enabled {
+            background: var(--cyber-green);
+            box-shadow: 0 0 8px var(--cyber-green);
+        }
+        
+        .theme-status.disabled {
+            background: var(--cyber-gray);
+        }
+        
+        .theme-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            box-shadow: 0 0 8px currentColor;
+            flex-shrink: 0;
+        }
+        
+        .theme-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .theme-name {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        
+        .theme-stats {
+            font-size: 10px;
+            color: var(--cyber-gray);
+        }
+        
+        .theme-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .theme-action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .theme-action-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-toggle {
+            background: rgba(0,255,0,0.2);
+            color: var(--cyber-green);
+        }
+        
+        .theme-node.disabled .btn-toggle {
+            background: rgba(128,128,128,0.2);
+            color: var(--cyber-gray);
+        }
+        
+        .btn-expand {
+            background: rgba(0,255,255,0.2);
+            color: var(--cyber-cyan);
+        }
+        
+        .btn-add-kw {
+            background: rgba(0,255,255,0.2);
+            color: var(--cyber-cyan);
+        }
+        
+        .btn-ai-suggest {
+            background: rgba(255,0,255,0.2);
+            color: var(--cyber-magenta);
+        }
+        
+        .btn-delete-theme {
+            background: rgba(255,0,64,0.2);
+            color: var(--cyber-red);
+        }
+        
+        .keywords-container {
+            padding: 0;
+            background: rgba(0,0,0,0.2);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .keywords-container.expanded {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .keywords-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid var(--cyber-border);
+        }
+        
+        .keywords-title {
+            font-size: 11px;
+            color: var(--cyber-gray);
+        }
+        
+        .keywords-count {
+            font-size: 10px;
+            color: var(--cyber-cyan);
+        }
+        
+        .keyword-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 0;
+            background: rgba(0,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s ease;
+        }
+        
+        .keyword-item:hover {
+            background: rgba(0,255,255,0.08);
+        }
+        
+        .keyword-item:last-child {
+            border-bottom: none;
+        }
+        
+        .keyword-text {
+            flex: 1;
+            font-size: 12px;
+        }
+        
+        .keyword-matches {
+            font-size: 10px;
+            color: var(--cyber-green);
+            margin-left: 8px;
+            font-weight: bold;
+        }
+        
+        .keyword-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .keyword-item:hover .keyword-actions {
+            opacity: 1;
+        }
+        
+        .kw-action-btn {
+            padding: 2px 6px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 9px;
+            transition: all 0.2s ease;
+        }
+        
+        .kw-action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .btn-edit-kw {
+            background: rgba(0,255,255,0.2);
+            color: var(--cyber-cyan);
+        }
+        
+        .btn-delete-kw {
+            background: rgba(255,0,64,0.2);
+            color: var(--cyber-red);
+        }
+        
+        .add-keyword-inline {
+            display: flex;
+            gap: 6px;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .add-keyword-inline input {
+            flex: 1;
+            padding: 6px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--cyber-border);
+            border-radius: 4px;
+            color: var(--cyber-text);
+            font-size: 11px;
+        }
+        
+        .add-keyword-inline input:focus {
+            outline: none;
+            border-color: var(--cyber-cyan);
+        }
+        
+        .add-keyword-inline button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .add-keyword-inline button:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-confirm {
+            background: var(--cyber-green);
+            color: black;
+        }
+        
+        .btn-cancel {
+            background: var(--cyber-gray);
+            color: black;
+        }
+        
+        /* Toast提示 - 高级感设计 */
+        .toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 16px 28px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 9999;
+            animation: toastSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 
+                0 8px 32px rgba(0,0,0,0.4),
+                0 0 0 1px rgba(255,255,255,0.1),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: none;
+            letter-spacing: 0.5px;
+            text-transform: none;
+        }
+        
+        .toast.success {
+            background: linear-gradient(135deg, 
+                rgba(0,255,136,0.95) 0%, 
+                rgba(0,204,102,0.9) 50%,
+                rgba(0,153,68,0.85) 100%);
+            color: #003300;
+            box-shadow: 
+                0 8px 32px rgba(0,255,136,0.3),
+                0 0 0 1px rgba(0,255,136,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        
+        .toast.error {
+            background: linear-gradient(135deg, 
+                rgba(255,59,48,0.95) 0%, 
+                rgba(255,45,85,0.9) 50%,
+                rgba(255,20,60,0.85) 100%);
+            color: white;
+            box-shadow: 
+                0 8px 32px rgba(255,59,48,0.3),
+                0 0 0 1px rgba(255,59,48,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        
+        .toast.info {
+            background: linear-gradient(135deg, 
+                rgba(0,200,255,0.95) 0%, 
+                rgba(0,150,255,0.9) 50%,
+                rgba(0,100,255,0.85) 100%);
+            color: #001a33;
+            box-shadow: 
+                0 8px 32px rgba(0,200,255,0.3),
+                0 0 0 1px rgba(0,200,255,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        
+        .toast.warning {
+            background: linear-gradient(135deg, 
+                rgba(255,149,0,0.95) 0%, 
+                rgba(255,120,0,0.9) 50%,
+                rgba(255,90,0,0.85) 100%);
+            color: #331a00;
+            box-shadow: 
+                0 8px 32px rgba(255,149,0,0.3),
+                0 0 0 1px rgba(255,149,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(120%) scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes toastSlideOut {
+            from {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(120%) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        /* Toast图标 */
+        .toast::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .toast.success::before {
+            content: '✓';
+            background: rgba(0,100,0,0.3);
+            color: #003300;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .toast.error::before {
+            content: '✕';
+            background: rgba(100,0,0,0.3);
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .toast.info::before {
+            content: 'ℹ';
+            background: rgba(0,50,100,0.3);
+            color: #001a33;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .toast.warning::before {
+            content: '⚠';
+            background: rgba(100,50,0,0.3);
+            color: #331a00;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .toast {
+            padding-left: 45px;
+        }
+        
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--cyber-card);
+            border: 2px solid var(--cyber-cyan);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--cyber-cyan);
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--cyber-gray);
+            font-size: 12px;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--cyber-border);
+            border-radius: 6px;
+            color: var(--cyber-text);
+            font-family: inherit;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .ai-keywords-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0;
+        }
+        
+        .ai-keyword-chip {
+            padding: 6px 12px;
+            border: 1px solid var(--cyber-magenta);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        
+        .ai-keyword-chip:hover {
+            background: rgba(255,0,255,0.2);
+        }
+        
+        .ai-keyword-chip.selected {
+            background: var(--cyber-magenta);
+            color: black;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-ai {
+            background: rgba(255,0,255,0.2);
+            color: var(--cyber-magenta);
+            border: 1px solid var(--cyber-magenta);
+        }
+        
+        .btn-primary {
+            background: var(--cyber-cyan);
+            color: black;
+        }
+        
+        .btn-secondary {
+            background: var(--cyber-gray);
+            color: black;
+        }
+        
+        .selected-keywords-preview {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(0,255,0,0.05);
+            border: 1px solid rgba(0,255,0,0.2);
+            border-radius: 6px;
+        }
+        
+        .selected-keywords-preview .label {
+            font-size: 11px;
+            color: var(--cyber-green);
+            margin-bottom: 8px;
+        }
+        
+        .selected-keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .selected-kw-chip {
+            padding: 4px 10px;
+            background: rgba(0,255,0,0.1);
+            border: 1px solid var(--cyber-green);
+            border-radius: 12px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .selected-kw-chip .remove {
+            cursor: pointer;
+            color: var(--cyber-red);
+        }
+        
+        .add-theme-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta));
+            border: none;
+            border-radius: 6px;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+        
+        /* 订阅源节点样式 */
+        .feed-node {
+            margin: 6px 0;
+            border: 1px solid var(--cyber-border);
+            border-radius: 6px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .feed-node:hover {
+            border-color: var(--cyber-cyan);
+        }
+        
+        .feed-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(0,255,255,0.03);
+            transition: all 0.3s ease;
+        }
+        
+        .feed-header:hover {
+            background: rgba(0,255,255,0.08);
+        }
+        
+        .feed-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        .feed-name {
+            flex: 1;
+            font-size: 13px;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .feed-stats {
+            font-size: 11px;
+            color: var(--cyber-gray);
+            flex-shrink: 0;
+        }
+        
+        .feed-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .feed-action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .feed-action-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-feed-expand {
+            background: rgba(0,255,255,0.2);
+            color: var(--cyber-cyan);
+        }
+        
+        .btn-feed-delete {
+            background: rgba(255,0,64,0.2);
+            color: var(--cyber-red);
+        }
+        
+        .feed-details {
+            padding: 0;
+            background: rgba(0,0,0,0.2);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .feed-details.expanded {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .feed-detail-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+        }
+        
+        .feed-detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .feed-detail-icon {
+            width: 20px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        .feed-detail-label {
+            color: var(--cyber-gray);
+            width: 70px;
+            flex-shrink: 0;
+        }
+        
+        .feed-detail-value {
+            flex: 1;
+            color: var(--cyber-text);
+            word-break: break-all;
+        }
+        
+        .feed-detail-value.url {
+            color: var(--cyber-cyan);
+        }
+        
+        .news-feed {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .news-bubble {
+            background: var(--cyber-card);
+            border: 1px solid var(--cyber-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .news-bubble:hover {
+            border-color: var(--cyber-cyan);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--cyber-gray);
+        }
+        
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--cyber-border);
+            border-top-color: var(--cyber-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+            .left-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛢️ NEWSANALYZER - RSS新闻监控</h1>
+        <p>实时地缘政治新闻流 + AI智能分析</p>
+    </div>
+    
+    <div class="container">
+        <!-- 左侧面板 -->
+        <div class="left-panel">
+            <!-- 刷新倒计时 -->
+            <div class="cyber-card">
+                <div class="card-title">⏱️ 下次刷新</div>
+                <div style="text-align: center; padding: 10px 0;">
+                    <div id="countdown-display" style="font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900; color: var(--cyber-cyan); text-shadow: 0 0 20px var(--cyber-cyan);">
+                        --:--
+                    </div>
+                    <div style="margin-top: 10px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                        <div id="countdown-progress" style="height: 100%; background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-green)); width: 100%; transition: width 1s linear;"></div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button onclick="triggerFetch()" style="padding: 6px 16px; background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta)); border: none; border-radius: 4px; color: black; font-weight: bold; cursor: pointer; font-size: 11px;">🔄 立即刷新</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 总体看板 -->
+            <div class="cyber-card">
+                <div class="card-title">📊 总体看板</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-cyan); text-shadow: 0 0 10px var(--cyber-cyan);" id="today-count">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">今日新闻</div>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-cyan); text-shadow: 0 0 10px var(--cyber-cyan);" id="alert-count">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">重要事件</div>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-orange); text-shadow: 0 0 10px var(--cyber-orange);" id="pending-analysis">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">待分析</div>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-cyan); text-shadow: 0 0 10px var(--cyber-cyan);" id="active-feeds">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">活跃订阅</div>
+                    </div>
+                </div>
+                
+                <div style="font-size: 14px; color: var(--cyber-cyan); margin-bottom: 10px;">📈 分类分布</div>
+                <div id="category-bars">
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>⚔️ 军事</span><span id="cat-military">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-red); border-radius: 4px; transition: width 0.5s ease;" id="bar-military"></div></div>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>⛽ 能源</span><span id="cat-energy">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-orange); border-radius: 4px; transition: width 0.5s ease;" id="bar-energy"></div></div>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>🤝 外交</span><span id="cat-diplomacy">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-cyan); border-radius: 4px; transition: width 0.5s ease;" id="bar-diplomacy"></div></div>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>💰 经济</span><span id="cat-economic">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-green); border-radius: 4px; transition: width 0.5s ease;" id="bar-economic"></div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 整体情绪 -->
+            <div class="cyber-card">
+                <div class="card-title">🌡️ 整体情绪</div>
+                
+                <div style="text-align: center; margin: 15px 0;">
+                    <div style="font-family: 'Orbitron', sans-serif; font-size: 48px; font-weight: 900; color: var(--cyber-cyan); text-shadow: 0 0 30px var(--cyber-cyan);" id="tension-value">5.0</div>
+                    <div style="color: var(--cyber-gray); font-size: 12px;">/ 10</div>
+                    <div style="font-size: 14px; margin-top: 5px;" id="tension-trend">➡️ 稳定</div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px;">
+                        <span style="width: 50px; color: var(--cyber-gray);">负面</span>
+                        <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: linear-gradient(90deg, var(--cyber-red), var(--cyber-orange)); transition: width 0.8s ease;" id="negative-bar"></div></div>
+                        <span style="width: 45px; text-align: right; font-weight: bold;" id="negative-value">50%</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px;">
+                        <span style="width: 50px; color: var(--cyber-gray);">中性</span>
+                        <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-gray); transition: width 0.8s ease;" id="neutral-bar"></div></div>
+                        <span style="width: 45px; text-align: right; font-weight: bold;" id="neutral-value">40%</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px;">
+                        <span style="width: 50px; color: var(--cyber-gray);">正面</span>
+                        <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-green); transition: width 0.8s ease;" id="positive-bar"></div></div>
+                        <span style="width: 45px; text-align: right; font-weight: bold;" id="positive-value">10%</span>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255,102,0,0.1); border: 1px solid var(--cyber-orange); border-radius: 6px; padding: 12px; margin: 10px 0;">
+                    <div style="font-size: 12px; color: var(--cyber-gray);">🛢️ 油价预期</div>
+                    <div style="font-size: 18px; font-weight: bold; margin-top: 5px;" id="oil-direction">震荡</div>
+                    <div style="font-size: 11px; color: var(--cyber-gray);" id="oil-confidence">置信度: 50%</div>
+                </div>
+                
+                <div id="dominant-factors">
+                    <div style="font-size: 12px; color: var(--cyber-gray); margin-bottom: 8px;">📌 主导因素</div>
+                </div>
+            </div>
+            
+            <!-- 预警 -->
+            <div class="cyber-card">
+                <div class="card-title">⚠️ 实时预警</div>
+                <div id="alerts-list" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: var(--cyber-gray); padding: 20px;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">✓</div>
+                        <p>暂无预警</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 订阅源管理 -->
+            <div class="cyber-card">
+                <div class="card-title">📡 订阅源管理</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" id="feed-name" placeholder="订阅源名称" style="background: rgba(0,0,0,0.3); border: 1px solid var(--cyber-border); border-radius: 4px; padding: 10px; color: var(--cyber-text); font-family: inherit;">
+                    <input type="text" id="feed-url" placeholder="RSS URL" style="background: rgba(0,0,0,0.3); border: 1px solid var(--cyber-border); border-radius: 4px; padding: 10px; color: var(--cyber-text); font-family: inherit;">
+                    <button onclick="addFeed()" style="background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta)); border: none; border-radius: 4px; padding: 10px; color: black; font-weight: bold; font-family: 'Orbitron', sans-serif; cursor: pointer;">+ 添加订阅源</button>
+                </div>
+                
+                <div id="feeds-list" style="max-height: 300px; overflow-y: auto;">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 主题管理（树状展示） -->
+            <div class="cyber-card">
+                <div class="card-title">📂 主题管理</div>
+                
+                <button class="add-theme-btn" onclick="showCreateThemeModal()">
+                    ➕ 新建主题
+                </button>
+                
+                <div class="theme-tree" id="theme-tree">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧新闻流 -->
+        <div class="right-panel">
+            <div class="cyber-card" style="flex: 1;">
+                <div class="card-title">💬 实时新闻流</div>
+                <div class="news-feed" id="news-feed">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>等待新闻数据...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新建主题弹窗 -->
+    <div class="modal" id="create-theme-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">➕ 新建主题</h3>
+            
+            <div class="form-group">
+                <label>主题名称 *</label>
+                <input type="text" id="new-theme-name" placeholder="例如：中东局势、原油市场">
+            </div>
+            
+            <div class="form-group">
+                <label>主题描述</label>
+                <textarea id="new-theme-desc" placeholder="描述这个主题关注的内容..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>关键词（手动输入，每行一个）</label>
+                <textarea id="manual-keywords" placeholder="输入关键词，每行一个..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <button class="btn-ai" onclick="showAISuggestForNewTheme()">
+                    🤖 让AI推荐关键词
+                </button>
+            </div>
+            
+            <div class="selected-keywords-preview" id="selected-keywords-preview" style="display: none;">
+                <div class="label">已选关键词：</div>
+                <div class="selected-keywords-list" id="selected-keywords-list"></div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideCreateThemeModal()">取消</button>
+                <button class="btn-primary" onclick="createTheme()">创建主题</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI推荐弹窗 -->
+    <div class="modal" id="ai-suggest-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">🤖 AI推荐关键词</h3>
+            <p style="color: var(--cyber-gray); font-size: 12px; margin-bottom: 16px;">点击选择关键词，再次点击取消选择</p>
+            
+            <div class="ai-keywords-grid" id="ai-keywords-grid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>AI正在思考中...</p>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-ai" onclick="regenerateKeywords()">🔄 重新生成</button>
+                <button class="btn-primary" onclick="importSelectedKeywords()">✅ 导入选中</button>
+                <button class="btn-secondary" onclick="hideAISuggestModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑关键词弹窗 -->
+    <div class="modal" id="edit-keyword-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 class="modal-title">✏️ 编辑关键词</h3>
+            <input type="text" id="edit-keyword-input" placeholder="输入新的关键词">
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideEditKeywordModal()">取消</button>
+                <button class="btn-primary" onclick="confirmEditKeyword()">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局状态
+        let themes = [];
+        let currentThemeId = null;
+        let aiSuggestedKeywords = [];
+        let selectedAIKeywords = [];
+        let editingKeywordId = null;
+        let newThemeSelectedKeywords = [];
+        let expandedThemes = new Set(); // 记录展开的主题ID
+        let expandedFeeds = new Set(); // 记录展开的订阅源ID
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadThemesTree();
+            loadNews();
+        });
+        
+        // 加载主题树
+        async function loadThemesTree() {
+            try {
+                const response = await fetch('/api/rss/themes/tree');
+                themes = await response.json();
+                renderThemeTree();
+            } catch (e) {
+                console.error('加载主题失败:', e);
+            }
+        }
+        
+        // 渲染主题树
+        function renderThemeTree() {
+            const container = document.getElementById('theme-tree');
+            
+            if (!themes || themes.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--cyber-gray); padding: 20px;">暂无主题，点击上方按钮创建</div>';
+                return;
+            }
+            
+            container.innerHTML = themes.map(theme => `
+                <div class="theme-node ${theme.enabled ? 'enabled' : 'disabled'}">
+                    <div class="theme-header">
+                        <span class="theme-status ${theme.enabled ? 'enabled' : 'disabled'}"></span>
+                        <span class="theme-color" style="background: ${theme.color}; color: ${theme.color};"></span>
+                        <div class="theme-info">
+                            <div class="theme-name">${theme.name}</div>
+                            <div class="theme-stats">
+                                <span style="color: var(--cyber-green);">✓ ${theme.keyword_count}个激活</span>
+                            </div>
+                        </div>
+                        <div class="theme-actions">
+                            <button class="theme-action-btn btn-toggle" onclick="toggleTheme(${theme.id})">
+                                ${theme.enabled ? '✓' : '○'}
+                            </button>
+                            <button class="theme-action-btn btn-expand" onclick="toggleThemeExpand(${theme.id})">
+                                ▼
+                            </button>
+                            <button class="theme-action-btn btn-add-kw" onclick="showAddKeyword(${theme.id})">+词</button>
+                            <button class="theme-action-btn btn-ai-suggest" onclick="showAISuggest(${theme.id})">🤖</button>
+                            <button class="theme-action-btn btn-delete-theme" onclick="deleteTheme(${theme.id})">×</button>
+                        </div>
+                    </div>
+                    <div class="keywords-container ${expandedThemes.has(theme.id) ? 'expanded' : ''}" id="keywords-${theme.id}">
+                        <div class="keywords-header">
+                            <span class="keywords-title">关键词列表</span>
+                            <span class="keywords-count">${theme.keyword_count}个</span>
+                        </div>
+                        ${theme.keywords.map(kw => `
+                            <div class="keyword-item">
+                                <span class="keyword-text">${kw.keyword}</span>
+                                ${kw.match_count > 0 ? `<span class="keyword-matches">[${kw.match_count}]</span>` : ''}
+                                <div class="keyword-actions">
+                                    <button class="kw-action-btn btn-edit-kw" onclick="showEditKeyword(${kw.id}, '${kw.keyword}')">✏️</button>
+                                    <button class="kw-action-btn btn-delete-kw" onclick="deleteKeyword(${kw.id}, ${theme.id})">×</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div class="add-keyword-inline" id="add-kw-${theme.id}" style="display: none;">
+                            <input type="text" placeholder="输入关键词" id="kw-input-${theme.id}">
+                            <button class="btn-confirm" onclick="addKeyword(${theme.id})">添加</button>
+                            <button class="btn-cancel" onclick="hideAddKeyword(${theme.id})">取消</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 展开/收起主题
+        function toggleThemeExpand(themeId) {
+            const container = document.getElementById(`keywords-${themeId}`);
+            container.classList.toggle('expanded');
+            
+            // 更新展开状态集合
+            if (expandedThemes.has(themeId)) {
+                expandedThemes.delete(themeId);
+            } else {
+                expandedThemes.add(themeId);
+            }
+        }
+        
+        // 启用/禁用主题
+        async function toggleTheme(themeId) {
+            // 获取当前主题状态
+            const theme = themes.find(t => t.id === themeId);
+            if (!theme) {
+                showToast('主题不存在', 'error');
+                return;
+            }
+            
+            const newEnabled = !theme.enabled;
+            
+            try {
+                const response = await fetch(`/api/rss/themes/${themeId}/toggle`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({enabled: newEnabled})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadThemesTree();
+                    showToast(newEnabled ? '主题已启用' : '主题已禁用', 'success');
+                } else {
+                    showToast(result.message || '操作失败', 'error');
+                }
+            } catch (e) {
+                console.error('切换主题状态失败:', e);
+                showToast('操作失败', 'error');
+            }
+        }
+        
+        // 显示添加关键词输入框
+        function showAddKeyword(themeId) {
+            document.getElementById(`add-kw-${themeId}`).style.display = 'flex';
+            document.getElementById(`keywords-${themeId}`).classList.add('expanded');
+            document.getElementById(`kw-input-${themeId}`).focus();
+        }
+        
+        // 隐藏添加关键词输入框
+        function hideAddKeyword(themeId) {
+            document.getElementById(`add-kw-${themeId}`).style.display = 'none';
+        }
+        
+        // 添加关键词
+        async function addKeyword(themeId) {
+            const input = document.getElementById(`kw-input-${themeId}`);
+            const keyword = input.value.trim();
+            
+            if (!keyword) {
+                showToast('请输入关键词', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rss/themes/${themeId}/keywords`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keyword})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    input.value = '';
+                    hideAddKeyword(themeId);
+                    loadThemesTree();
+                    showToast('✓ 关键词添加成功', 'success');
+                } else {
+                    showToast(result.message || '添加失败', 'error');
+                }
+            } catch (e) {
+                console.error('添加关键词失败:', e);
+                showToast('添加失败: ' + e.message, 'error');
+            }
+        }
+        
+        // 显示编辑关键词弹窗
+        function showEditKeyword(keywordId, currentKeyword) {
+            editingKeywordId = keywordId;
+            document.getElementById('edit-keyword-input').value = currentKeyword;
+            document.getElementById('edit-keyword-modal').classList.add('active');
+        }
+        
+        // 隐藏编辑关键词弹窗
+        function hideEditKeywordModal() {
+            document.getElementById('edit-keyword-modal').classList.remove('active');
+            editingKeywordId = null;
+        }
+        
+        // 确认编辑关键词
+        async function confirmEditKeyword() {
+            const newKeyword = document.getElementById('edit-keyword-input').value.trim();
+            if (!newKeyword || !editingKeywordId) return;
+            
+            try {
+                const response = await fetch(`/api/rss/themes/keywords/${editingKeywordId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keyword: newKeyword})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    hideEditKeywordModal();
+                    loadThemesTree();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('更新失败: ' + e.message);
+            }
+        }
+        
+        // 删除关键词
+        async function deleteKeyword(keywordId, themeId) {
+            if (!confirm('确定删除此关键词？')) return;
+            
+            try {
+                const response = await fetch(`/api/rss/themes/keywords/${keywordId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    loadThemesTree();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+        
+        // 显示AI推荐
+        async function showAISuggest(themeId) {
+            currentThemeId = themeId;
+            selectedAIKeywords = [];
+            document.getElementById('ai-suggest-modal').classList.add('active');
+            await loadAISuggestions(themeId);
+        }
+        
+        // 隐藏AI推荐弹窗
+        function hideAISuggestModal() {
+            document.getElementById('ai-suggest-modal').classList.remove('active');
+            currentThemeId = null;
+        }
+        
+        // 加载AI推荐
+        async function loadAISuggestions(themeId) {
+            const grid = document.getElementById('ai-keywords-grid');
+            grid.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>AI正在思考中...</p></div>';
+            
+            try {
+                const response = await fetch(`/api/rss/themes/${themeId}/suggest`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.keywords) {
+                    aiSuggestedKeywords = result.keywords;
+                    renderAIKeywords();
+                } else {
+                    grid.innerHTML = `<div style="color: var(--cyber-red);">推荐失败: ${result.message || '未知错误'}</div>`;
+                }
+            } catch (e) {
+                grid.innerHTML = `<div style="color: var(--cyber-red);">推荐失败: ${e.message}</div>`;
+            }
+        }
+        
+        // 渲染AI推荐关键词
+        function renderAIKeywords() {
+            const grid = document.getElementById('ai-keywords-grid');
+            grid.innerHTML = aiSuggestedKeywords.map(kw => `
+                <div class="ai-keyword-chip ${selectedAIKeywords.includes(kw) ? 'selected' : ''}" 
+                     onclick="toggleAIKeyword('${kw}')">
+                    ${kw}
+                </div>
+            `).join('');
+        }
+        
+        // 切换AI关键词选择
+        function toggleAIKeyword(keyword) {
+            const index = selectedAIKeywords.indexOf(keyword);
+            if (index > -1) {
+                selectedAIKeywords.splice(index, 1);
+            } else {
+                selectedAIKeywords.push(keyword);
+            }
+            renderAIKeywords();
+        }
+        
+        // 重新生成关键词
+        async function regenerateKeywords() {
+            if (currentThemeId) {
+                await loadAISuggestions(currentThemeId);
+            }
+        }
+        
+        // 导入选中的关键词
+        async function importSelectedKeywords() {
+            if (selectedAIKeywords.length === 0) {
+                alert('请先选择关键词');
+                return;
+            }
+            
+            if (!currentThemeId) {
+                alert('主题ID无效');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rss/themes/${currentThemeId}/import`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keywords: selectedAIKeywords})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(`成功导入 ${result.imported} 个关键词`);
+                    hideAISuggestModal();
+                    loadThemesTree();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('导入失败: ' + e.message);
+            }
+        }
+        
+        // 删除主题
+        async function deleteTheme(themeId) {
+            if (!confirm('确定删除此主题？')) return;
+            
+            try {
+                const response = await fetch(`/api/rss/themes/${themeId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    loadThemesTree();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+        
+        // 显示新建主题弹窗
+        function showCreateThemeModal() {
+            document.getElementById('new-theme-name').value = '';
+            document.getElementById('new-theme-desc').value = '';
+            document.getElementById('manual-keywords').value = '';
+            document.getElementById('selected-keywords-preview').style.display = 'none';
+            newThemeSelectedKeywords = [];
+            document.getElementById('create-theme-modal').classList.add('active');
+        }
+        
+        // 隐藏新建主题弹窗
+        function hideCreateThemeModal() {
+            document.getElementById('create-theme-modal').classList.remove('active');
+        }
+        
+        // 为新主题显示AI推荐
+        async function showAISuggestForNewTheme() {
+            const name = document.getElementById('new-theme-name').value.trim();
+            const desc = document.getElementById('new-theme-desc').value.trim();
+            
+            if (!name) {
+                alert('请先输入主题名称');
+                return;
+            }
+            
+            document.getElementById('ai-suggest-modal').classList.add('active');
+            
+            const grid = document.getElementById('ai-keywords-grid');
+            grid.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>AI正在思考中...</p></div>';
+            
+            try {
+                // 临时创建一个主题来获取推荐
+                const tempResponse = await fetch('/api/rss/themes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, description: desc})
+                });
+                
+                const tempResult = await tempResponse.json();
+                
+                if (!tempResult.success) {
+                    grid.innerHTML = `<div style="color: var(--cyber-red);">创建临时主题失败: ${tempResult.message}</div>`;
+                    return;
+                }
+                
+                const tempThemeId = tempResult.id;
+                
+                // 获取AI推荐
+                const suggestResponse = await fetch(`/api/rss/themes/${tempThemeId}/suggest`, {
+                    method: 'POST'
+                });
+                
+                const suggestResult = await suggestResponse.json();
+                
+                if (suggestResult.success && suggestResult.keywords) {
+                    aiSuggestedKeywords = suggestResult.keywords;
+                    currentThemeId = tempThemeId;
+                    renderAIKeywords();
+                } else {
+                    grid.innerHTML = `<div style="color: var(--cyber-red);">推荐失败: ${suggestResult.message || '未知错误'}</div>`;
+                }
+                
+            } catch (e) {
+                grid.innerHTML = `<div style="color: var(--cyber-red);">推荐失败: ${e.message}</div>`;
+            }
+        }
+        
+        // 更新已选关键词预览
+        function updateSelectedKeywordsPreview() {
+            const manualKeywords = document.getElementById('manual-keywords').value
+                .split('\n')
+                .map(k => k.trim())
+                .filter(k => k);
+            
+            const allKeywords = [...manualKeywords, ...newThemeSelectedKeywords];
+            
+            const preview = document.getElementById('selected-keywords-preview');
+            const list = document.getElementById('selected-keywords-list');
+            
+            if (allKeywords.length === 0) {
+                preview.style.display = 'none';
+                return;
+            }
+            
+            preview.style.display = 'block';
+            list.innerHTML = allKeywords.map(kw => `
+                <span class="selected-kw-chip">
+                    ${kw}
+                    <span class="remove" onclick="removeSelectedKeyword('${kw}')">×</span>
+                </span>
+            `).join('');
+        }
+        
+        // 移除已选关键词
+        function removeSelectedKeyword(keyword) {
+            const index = newThemeSelectedKeywords.indexOf(keyword);
+            if (index > -1) {
+                newThemeSelectedKeywords.splice(index, 1);
+            }
+            updateSelectedKeywordsPreview();
+        }
+        
+        // 创建主题
+        async function createTheme() {
+            const name = document.getElementById('new-theme-name').value.trim();
+            const description = document.getElementById('new-theme-desc').value.trim();
+            const manualKeywords = document.getElementById('manual-keywords').value
+                .split('\n')
+                .map(k => k.trim())
+                .filter(k => k);
+            
+            if (!name) {
+                alert('请输入主题名称');
+                return;
+            }
+            
+            const allKeywords = [...manualKeywords, ...newThemeSelectedKeywords];
+            
+            try {
+                const response = await fetch('/api/rss/themes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name,
+                        description,
+                        keywords: allKeywords
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('主题创建成功！');
+                    hideCreateThemeModal();
+                    loadThemesTree();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('创建失败: ' + e.message);
+            }
+        }
+        
+        // 加载新闻
+        async function loadNews() {
+            try {
+                const response = await fetch('/api/rss/news?limit=30');
+                const data = await response.json();
+                
+                const feed = document.getElementById('news-feed');
+                feed.innerHTML = '';
+                
+                if (data.length === 0) {
+                    feed.innerHTML = `
+                        <div style="text-align: center; color: var(--cyber-gray); padding: 50px;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📰</div>
+                            <p>暂无新闻，请等待系统拉取...</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                data.forEach(news => addNewsBubble(news, false));
+            } catch (e) {
+                console.error('加载新闻失败:', e);
+            }
+        }
+        
+        // 添加新闻气泡
+        function addNewsBubble(news, isNew = false) {
+            const feed = document.getElementById('news-feed');
+            
+            const analysis = news.ollama_analysis || {};
+            const classification = analysis.classification || {};
+            const impact = analysis.impact_assessment || {};
+            const entities = analysis.entities || {};
+            
+            const category = classification.category || 'unknown';
+            const severity = impact.geopolitical_severity || 'medium';
+            const oilScore = impact.oil_impact_score || 0;
+            
+            const categoryIcon = {
+                '军事': '⚔️',
+                '外交': '🤝',
+                '能源': '⛽',
+                '经济': '💰'
+            }[category] || '📰';
+            
+            const bubble = document.createElement('div');
+            bubble.className = `news-bubble ${isNew ? 'new' : ''}`;
+            bubble.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span style="background: rgba(0,255,255,0.2); color: var(--cyber-cyan); padding: 4px 10px; border-radius: 12px; font-size: 11px;">
+                        ${news.source_name || 'Unknown'}
+                    </span>
+                    <span style="color: var(--cyber-gray); font-size: 11px; margin-left: auto;">
+                        ${formatTime(news.published_at)}
+                    </span>
+                    <span style="background: rgba(0,255,0,0.2); color: var(--cyber-green); padding: 4px 10px; border-radius: 10px; font-size: 11px;">
+                        🤖 已分析
+                    </span>
+                </div>
+                
+                <div style="font-size: 15px; font-weight: bold; margin-bottom: 10px; line-height: 1.4;">
+                    <a href="${news.url}" target="_blank" style="color: var(--cyber-text); text-decoration: none;">
+                        ${news.title}
+                    </a>
+                </div>
+                
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cyber-border);">
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+                        <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; background: rgba(255,0,64,0.2); color: var(--cyber-red);">
+                            ${categoryIcon} ${category}
+                        </span>
+                        <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; border: 1px solid ${severity === 'critical' ? 'var(--cyber-red)' : severity === 'high' ? 'var(--cyber-orange)' : 'var(--cyber-yellow)'};">
+                            ${severity}
+                        </span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                        <span style="font-size: 11px; color: var(--cyber-gray);">🛢️ 油价影响</span>
+                        <div style="flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; background: linear-gradient(90deg, var(--cyber-green), var(--cyber-yellow), var(--cyber-orange), var(--cyber-red)); width: ${oilScore * 10}%;"></div>
+                        </div>
+                        <span style="font-family: 'Orbitron', sans-serif; font-weight: bold; color: var(--cyber-cyan); font-size: 14px;">
+                            ${oilScore.toFixed(1)}/10
+                        </span>
+                    </div>
+                    
+                    <div style="padding: 10px; background: rgba(0,255,255,0.05); border-left: 3px solid var(--cyber-cyan); margin: 10px 0; font-size: 13px; line-height: 1.5;">
+                        💬 ${analysis.chinese_summary || news.summary_cn || '等待分析...'}
+                    </div>
+                    
+                    ${(analysis.key_insights || []).length > 0 ? `
+                        <div style="margin: 10px 0;">
+                            ${(analysis.key_insights || []).map(insight => `
+                                <div style="padding: 6px 10px; margin: 4px 0; background: rgba(255,0,255,0.05); border-left: 2px solid var(--cyber-magenta); font-size: 12px;">
+                                    ▸ ${insight}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${(entities.countries || []).length > 0 ? `
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">
+                            ${(entities.countries || []).map(country => `
+                                <span style="padding: 4px 10px; background: rgba(255,255,255,0.1); border-radius: 12px; font-size: 11px;">
+                                    🌍 ${country}
+                                </span>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <a href="${news.url}" target="_blank" style="display: inline-block; margin-top: 10px; padding: 6px 12px; background: rgba(0,255,255,0.1); border: 1px solid var(--cyber-cyan); border-radius: 4px; color: var(--cyber-cyan); text-decoration: none; font-size: 12px;">
+                    🔗 查看原文
+                </a>
+            `;
+            
+            if (isNew) {
+                feed.insertBefore(bubble, feed.firstChild);
+            } else {
+                feed.appendChild(bubble);
+            }
+            
+            while (feed.children.length > 50) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+        
+        // 时间格式化
+        function formatTime(dateStr) {
+            if (!dateStr) return '未知';
+            
+            try {
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diff = (now - date) / 1000;
+                
+                if (diff < 60) return '刚刚';
+                if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
+                if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
+                return `${Math.floor(diff / 86400)}天前`;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+        
+        // 监听手动输入变化
+        document.getElementById('manual-keywords').addEventListener('input', updateSelectedKeywordsPreview);
+        
+        // ==================== 左侧功能模块函数 ====================
+        
+        // 刷新倒计时
+        let countdownSeconds = 30 * 60; // 30分钟
+        let countdownInterval = null;
+        
+        function initCountdown() {
+            updateCountdownDisplay();
+            startCountdown();
+            loadDashboardStats();
+            loadAlerts();
+            loadFeeds();
+            
+            // 定时刷新
+            setInterval(loadDashboardStats, 30000);
+            setInterval(loadAlerts, 30000);
+            // 队列长度已改用SSE实时推送，无需轮询
+        }
+        
+        function startCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                
+                if (countdownSeconds <= 0) {
+                    triggerFetch();
+                    countdownSeconds = 30 * 60;
+                }
+                
+                updateCountdownDisplay();
+            }, 1000);
+        }
+        
+        function updateCountdownDisplay() {
+            const minutes = Math.floor(countdownSeconds / 60);
+            const seconds = countdownSeconds % 60;
+            const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            document.getElementById('countdown-display').textContent = display;
+            
+            const totalSeconds = 30 * 60;
+            const progress = (countdownSeconds / totalSeconds) * 100;
+            document.getElementById('countdown-progress').style.width = `${progress}%`;
+        }
+        
+        function triggerFetch() {
+            fetch('/api/rss/fetch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('刷新任务已启动');
+                    countdownSeconds = 30 * 60;
+                } else {
+                    console.error('刷新失败:', data.message);
+                }
+            })
+            .catch(e => {
+                console.error('刷新请求失败:', e);
+            });
+        }
+        
+        // 加载看板统计
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/api/rss/dashboard-stats');
+                const data = await response.json();
+                updateDashboardStats(data);
+            } catch (e) {
+                console.error('加载看板数据失败:', e);
+            }
+        }
+        
+        function updateDashboardStats(stats) {
+            document.getElementById('today-count').textContent = stats.today_count || 0;
+            document.getElementById('alert-count').textContent = stats.alert_count || 0;
+            document.getElementById('active-feeds').textContent = stats.active_feeds || 0;
+            
+            const categories = stats.category_distribution || {};
+            const total = Object.values(categories).reduce((a, b) => a + b, 0) || 1;
+            
+            ['military', 'energy', 'diplomacy', 'economic'].forEach(cat => {
+                const key = {'military': '军事', 'energy': '能源', 'diplomacy': '外交', 'economic': '经济'}[cat];
+                const count = categories[key] || 0;
+                const pct = (count / total * 100).toFixed(0);
+                
+                document.getElementById(`cat-${cat}`).textContent = count;
+                document.getElementById(`bar-${cat}`).style.width = `${pct}%`;
+            });
+            
+            if (stats.overall_sentiment) {
+                updateSentiment(stats.overall_sentiment);
+            }
+        }
+        
+        function updateSentiment(data) {
+            const tension = data.tension_score || {};
+            document.getElementById('tension-value').textContent = (tension.current || 5.0).toFixed(1);
+            
+            const trend = tension.trend || 'stable';
+            const trendEl = document.getElementById('tension-trend');
+            if (trend === 'rising') {
+                trendEl.innerHTML = '↗️ 上升';
+                trendEl.style.color = 'var(--cyber-red)';
+            } else if (trend === 'falling') {
+                trendEl.innerHTML = '↘️ 下降';
+                trendEl.style.color = 'var(--cyber-green)';
+            } else {
+                trendEl.innerHTML = '➡️ 稳定';
+                trendEl.style.color = 'var(--cyber-gray)';
+            }
+            
+            const sentimentIndex = data.sentiment_index || {};
+            const negative = sentimentIndex.negative || 50;
+            const neutral = sentimentIndex.neutral || 40;
+            const positive = sentimentIndex.positive || 10;
+            
+            document.getElementById('negative-bar').style.width = `${negative}%`;
+            document.getElementById('negative-value').textContent = `${negative}%`;
+            document.getElementById('neutral-bar').style.width = `${neutral}%`;
+            document.getElementById('neutral-value').textContent = `${neutral}%`;
+            document.getElementById('positive-bar').style.width = `${positive}%`;
+            document.getElementById('positive-value').textContent = `${positive}%`;
+            
+            const oilOutlook = data.oil_outlook || {};
+            document.getElementById('oil-direction').textContent = oilOutlook.direction || '震荡';
+            document.getElementById('oil-confidence').textContent = `置信度: ${((oilOutlook.confidence || 0.5) * 100).toFixed(0)}%`;
+            
+            const factors = data.dominant_factors || [];
+            const factorsEl = document.getElementById('dominant-factors');
+            factorsEl.innerHTML = '<div style="font-size: 12px; color: var(--cyber-gray); margin-bottom: 8px;">📌 主导因素</div>';
+            factors.forEach(factor => {
+                const div = document.createElement('div');
+                div.style.cssText = 'padding: 6px 10px; margin: 4px 0; background: rgba(255,0,255,0.05); border-left: 2px solid var(--cyber-magenta); font-size: 12px;';
+                div.textContent = `· ${factor}`;
+                factorsEl.appendChild(div);
+            });
+        }
+        
+        // 加载预警
+        async function loadAlerts() {
+            try {
+                const response = await fetch('/api/rss/alerts');
+                const data = await response.json();
+                updateAlerts(data);
+            } catch (e) {
+                console.error('加载预警失败:', e);
+            }
+        }
+        
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alerts-list');
+            
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--cyber-gray); padding: 20px;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">✓</div>
+                        <p>暂无预警</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = alerts.map(alert => {
+                const score = alert.oil_impact_score || 0;
+                const level = score >= 8 ? 'high' : 'medium';
+                const borderColor = level === 'high' ? 'var(--cyber-red)' : 'var(--cyber-orange)';
+                const bgColor = level === 'high' ? 'rgba(255,0,64,0.15)' : 'rgba(255,102,0,0.1)';
+                
+                return `
+                    <div style="padding: 10px; margin: 6px 0; background: ${bgColor}; border-left: 3px solid ${borderColor}; border-radius: 4px; font-size: 12px;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">${alert.title}</div>
+                        <div style="color: var(--cyber-gray);">
+                            🛢️ 油价影响: ${score.toFixed(1)} · ${alert.source_name} · ${formatTime(alert.created_at)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 获取队列长度
+        async function fetchQueueLength() {
+            try {
+                const response = await fetch('/api/rss/queue-length');
+                const data = await response.json();
+                const queueLength = data.queue_length || 0;
+                
+                const pendingEl = document.getElementById('pending-analysis');
+                pendingEl.textContent = queueLength;
+                
+                if (queueLength > 0) {
+                    pendingEl.style.color = 'var(--cyber-orange)';
+                } else {
+                    pendingEl.style.color = 'var(--cyber-cyan)';
+                }
+            } catch (e) {
+                console.error('获取队列长度失败:', e);
+            }
+        }
+        
+        // 订阅源管理
+        async function loadFeeds() {
+            try {
+                const response = await fetch('/api/rss/feeds');
+                const data = await response.json();
+                updateFeeds(data);
+            } catch (e) {
+                console.error('加载订阅源失败:', e);
+            }
+        }
+        
+        function updateFeeds(feeds) {
+            const container = document.getElementById('feeds-list');
+            
+            if (!feeds || feeds.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--cyber-gray); padding: 20px;">暂无订阅源</div>';
+                return;
+            }
+            
+            container.innerHTML = feeds.map(feed => `
+                <div class="feed-node">
+                    <div class="feed-header">
+                        <input type="checkbox" class="feed-checkbox" ${feed.enabled ? 'checked' : ''} 
+                               onchange="toggleFeed(${feed.id}, this.checked)">
+                        <span class="feed-name">${feed.name}</span>
+                        <span class="feed-stats">${feed.article_count || 0}篇</span>
+                        <div class="feed-actions">
+                            <button class="feed-action-btn btn-feed-expand" onclick="toggleFeedExpand(${feed.id})">
+                                ${expandedFeeds.has(feed.id) ? '▲' : '▼'}
+                            </button>
+                            <button class="feed-action-btn btn-feed-delete" onclick="deleteFeed(${feed.id})">×</button>
+                        </div>
+                    </div>
+                    <div class="feed-details ${expandedFeeds.has(feed.id) ? 'expanded' : ''}" id="feed-details-${feed.id}">
+                        <div class="feed-detail-item">
+                            <span class="feed-detail-icon">📎</span>
+                            <span class="feed-detail-label">URL:</span>
+                            <span class="feed-detail-value url">${feed.url}</span>
+                        </div>
+                        <div class="feed-detail-item">
+                            <span class="feed-detail-icon">🕐</span>
+                            <span class="feed-detail-label">最后拉取:</span>
+                            <span class="feed-detail-value">${feed.last_fetched ? formatTime(feed.last_fetched) : '从未拉取'}</span>
+                        </div>
+                        <div class="feed-detail-item">
+                            <span class="feed-detail-icon">📅</span>
+                            <span class="feed-detail-label">创建时间:</span>
+                            <span class="feed-detail-value">${formatTime(feed.created_at)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 展开/收起订阅源详情
+        function toggleFeedExpand(feedId) {
+            const details = document.getElementById(`feed-details-${feedId}`);
+            details.classList.toggle('expanded');
+            
+            // 更新展开状态集合
+            if (expandedFeeds.has(feedId)) {
+                expandedFeeds.delete(feedId);
+            } else {
+                expandedFeeds.add(feedId);
+            }
+            
+            // 重新渲染以更新按钮图标
+            loadFeeds();
+        }
+        
+        async function addFeed() {
+            const nameInput = document.getElementById('feed-name');
+            const urlInput = document.getElementById('feed-url');
+            
+            const name = nameInput.value.trim();
+            const url = urlInput.value.trim();
+            
+            if (!name || !url) {
+                alert('请填写订阅源名称和URL');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rss/feeds', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, url})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    nameInput.value = '';
+                    urlInput.value = '';
+                    loadFeeds();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('添加失败: ' + e.message);
+            }
+        }
+        
+        async function deleteFeed(feedId) {
+            if (!confirm('确定删除此订阅源？')) return;
+            
+            try {
+                const response = await fetch(`/api/rss/feeds/${feedId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadFeeds();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+        
+        async function toggleFeed(feedId, enabled) {
+            try {
+                await fetch(`/api/rss/feeds/${feedId}/toggle`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({enabled})
+                });
+            } catch (e) {
+                console.error('切换状态失败:', e);
+            }
+        }
+        
+        // ==================== SSE实时推送 ====================
+        let eventSource = null;
+        
+        function initSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            eventSource = new EventSource('/api/rss/stream');
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('收到SSE消息:', data);
+                    handleSSEMessage(data);
+                } catch (e) {
+                    console.error('SSE消息解析失败:', e);
+                }
+            };
+            
+            eventSource.onerror = function() {
+                console.log('SSE连接断开，3秒后重连...');
+                setTimeout(initSSE, 3000);
+            };
+            
+            console.log('SSE连接已初始化');
+        }
+        
+        function handleSSEMessage(message) {
+            switch (message.type) {
+                case 'connected':
+                    console.log('SSE连接成功');
+                    break;
+                case 'news_analyzed':
+                    console.log('收到新新闻:', message.data);
+                    addNewsBubble(message.data, true);
+                    break;
+                case 'sentiment_updated':
+                    console.log('情绪数据更新');
+                    updateSentiment(message.data);
+                    break;
+                case 'queue_updated':
+                    console.log('队列更新:', message.data.queue_length);
+                    updateQueueDisplay(message.data.queue_length);
+                    break;
+                default:
+                    console.log('未知消息类型:', message.type);
+            }
+        }
+        
+        // 更新队列显示
+        function updateQueueDisplay(queueLength) {
+            const pendingEl = document.getElementById('pending-analysis');
+            pendingEl.textContent = queueLength;
+            
+            if (queueLength > 0) {
+                pendingEl.style.color = 'var(--cyber-orange)';
+            } else {
+                pendingEl.style.color = 'var(--cyber-cyan)';
+            }
+        }
+        
+        // Toast提示函数 - 高级感设计
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                toast.style.animation = 'toastSlideOut 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        document.body.removeChild(toast);
+                    }
+                }, 400);
+            }, 3000);
+        }
+        
+        // 带确认的Toast
+        function showToastWithConfirm(message, type = 'info', onConfirm = null) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove(); ${onConfirm ? onConfirm + '()' : ''}" 
+                        style="margin-left: 10px; background: rgba(0,0,0,0.3); border: none; color: inherit; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                    确认
+                </button>
+            `;
+            document.body.appendChild(toast);
+            
+            // 5秒后自动消失
+            setTimeout(() => {
+                toast.style.animation = 'toastSlideOut 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        document.body.removeChild(toast);
+                    }
+                }, 400);
+            }, 5000);
+        }
+        
+        // 更新初始化函数
+        document.addEventListener('DOMContentLoaded', function() {
+            initCountdown();
+            loadThemesTree();
+            loadNews();
+            initSSE(); // 初始化SSE连接
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+{
+    "api_keys": {
+        "alpha_vantage": "YOUR_ALPHA_VANTAGE_API_KEY_HERE",
+        "fred": "YOUR_FRED_API_KEY_HERE",
+        "news_api": "YOUR_NEWS_API_KEY_HERE"
+    },
+    "data_sources": {
+        "brent_crude": "BZ=F",
+        "sp500": "^GSPC",
+        "nasdaq": "^IXIC",
+        "dxy": "DX-Y.NYB",
+        "gold": "GC=F",
+        "treasury_10y": "^TNX"
+    },
+    "geopolitical_news": {
+        "enabled": true,
+        "update_interval_hours": 6,
+        "max_articles": 100,
+        "lookback_days": 1,
+        "news_sources": {
+            "rss_enabled": true,
+            "newsapi_enabled": true,
+            "rss_feeds": {
+                "zerohedge": "https://feeds.feedburner.com/zerohedge/feed",
+                "seeking_alpha": "https://seekingalpha.com/market_currents.xml",
+                "cnbc": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147",
+                "fox_business": "https://moxie.foxbusiness.com/google-publisher/latest.xml",
+                "al_jazeera": "https://www.aljazeera.com/xml/rss/all.xml",
+                "geopolitical_futures": "https://geopoliticalfutures.com/feed/",
+                "middle_east_eye": "https://www.middleeasteye.net/rss",
+                "foreign_policy": "https://foreignpolicy.com/feed/",
+                "isw_iran": "https://understandingwar.org/rss.xml",
+                "al_monitor": "https://www.al-monitor.com/rss",
+                "defense_news": "https://www.defensenews.com/arc/outboundfeeds/rss/",
+                "the_war_zone": "https://www.twz.com/feed/",
+                "iran_wire": "https://iranwire.com/en/rss",
+                "stratfor": "https://worldview.stratfor.com/rss.xml",
+                "un_middle_east": "https://news.un.org/en/feed/subscribe/sector/middle-east/rss.xml"
+            }
+        },
+        "categories": {
+            "military": {
+                "enabled": true,
+                "keywords": [
+                    "Iran military",
+                    "Iran army",
+                    "IRGC",
+                    "Revolutionary Guard",
+                    "Iran missile",
+                    "Iran attack",
+                    "Iran war",
+                    "Iran conflict",
+                    "Hezbollah",
+                    "Hamas Iran",
+                    "Yemen Houthis",
+                    "Iran Israel"
+                ]
+            },
+            "diplomacy": {
+                "enabled": true,
+                "keywords": [
+                    "Iran nuclear deal",
+                    "JCPOA",
+                    "Iran talks",
+                    "Iran negotiation",
+                    "Iran sanctions",
+                    "Iran diplomacy",
+                    "IAEA Iran",
+                    "Iran enrichment"
+                ]
+            },
+            "energy": {
+                "enabled": true,
+                "keywords": [
+                    "Strait of Hormuz",
+                    "Hormuz shipping",
+                    "Hormuz oil",
+                    "Persian Gulf",
+                    "Gulf oil",
+                    "Iran oil export",
+                    "oil supply"
+                ]
+            }
+        }
+    },
+    "monitoring": {
+        "update_interval_seconds": 3600,
+        "historical_data_days": 365
+    },
+    "debug": {
+        "enabled": false,
+        "log_url_content": false,
+        "log_prompt": false,
+        "log_file": "logs/debug_url_content.log",
+        "prompt_log_file": "logs/debug_prompts.log",
+        "max_content_length": 500
+    },
+    "rss_panel": {
+        "enabled": true,
+        "fetch_interval_minutes": 30,
+        "max_news_per_feed": 15,
+        "analysis_enabled": true,
+        "auto_classify": true
+    },
+    "ollama_settings": {
+        "analysis_model": {
+            "name": "glm-4.6:cloud",
+            "temperature": 0.3,
+            "purpose": "深度分析、危机评估"
+        },
+        "translation_model": {
+            "name": "gpt-oss:20b-cloud",
+            "temperature": 0.3,
+            "purpose": "快速翻译、文本处理"
+        },
+        "summary_model": {
+            "name": "glm-4.6:cloud",
+            "temperature": 0.3,
+            "purpose": "趋势总结、综合评估"
+        }
+    }
+}

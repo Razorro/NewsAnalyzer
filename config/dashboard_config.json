@@ -1,0 +1,135 @@
+{
+  "layout": {
+    "columns": 2,
+    "gap": "20px",
+    "responsive": {
+      "mobile": {
+        "columns": 1,
+        "gap": "15px"
+      }
+    }
+  },
+  "theme": {
+    "primary_color": "#00ffff",
+    "accent_color": "#ff00ff",
+    "background": "#0a0a0f",
+    "card_background": "#0d1117",
+    "text_color": "#e6edf3",
+    "border_color": "#30363d"
+  },
+  "components": [
+    {
+      "id": "threat_level",
+      "type": "score_card",
+      "title": "威胁等级",
+      "icon": "📊",
+      "enabled": true,
+      "order": 1,
+      "data_source": "last_analysis",
+      "config": {
+        "max_score": 10,
+        "show_trend": true,
+        "show_level": true,
+        "animation": true
+      }
+    },
+    {
+      "id": "dimensions",
+      "type": "dimensions_grid",
+      "title": "三维评估",
+      "icon": "📈",
+      "enabled": true,
+      "order": 2,
+      "data_source": "last_analysis.dimensions",
+      "config": {
+        "show_delta": true,
+        "show_direction": true,
+        "dimensions": [
+          {"key": "military", "label": "军事", "icon": "⚔️"},
+          {"key": "diplomacy", "label": "外交", "icon": "🤝"},
+          {"key": "energy", "label": "能源", "icon": "⛽"}
+        ]
+      }
+    },
+    {
+      "id": "insights",
+      "type": "insights_list",
+      "title": "关键洞察",
+      "icon": "💡",
+      "enabled": true,
+      "order": 3,
+      "data_source": "last_analysis.key_insights",
+      "config": {
+        "max_items": 10,
+        "highlight_new": true,
+        "show_number": true
+      }
+    },
+    {
+      "id": "summary",
+      "type": "summary_box",
+      "title": "执行摘要",
+      "icon": "📝",
+      "enabled": true,
+      "order": 4,
+      "data_source": "last_analysis.executive_summary",
+      "config": {
+        "max_length": 500,
+        "show_expand": true
+      }
+    },
+    {
+      "id": "history",
+      "type": "trend_chart",
+      "title": "历史趋势",
+      "icon": "📊",
+      "enabled": false,
+      "order": 5,
+      "data_source": "history",
+      "config": {
+        "max_points": 10,
+        "show_score": true,
+        "show_dimensions": true
+      }
+    },
+    {
+      "id": "timeline",
+      "type": "timeline",
+      "title": "事件时间线",
+      "icon": "📅",
+      "enabled": false,
+      "order": 6,
+      "data_source": "events",
+      "config": {
+        "max_items": 20,
+        "show_source": true,
+        "show_date": true
+      }
+    },
+    {
+      "id": "status",
+      "type": "status_bar",
+      "title": "系统状态",
+      "icon": "📡",
+      "enabled": true,
+      "order": 7,
+      "data_source": "system",
+      "config": {
+        "show_connection": true,
+        "show_last_update": true,
+        "show_articles_count": true
+      }
+    }
+  ],
+  "refresh": {
+    "interval": 5000,
+    "auto_refresh": true,
+    "show_indicator": true
+  },
+  "notifications": {
+    "enabled": true,
+    "show_new_insights": true,
+    "show_score_change": true,
+    "show_trend_change": true
+  }
+}

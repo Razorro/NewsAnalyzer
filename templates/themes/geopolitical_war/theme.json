@@ -1,0 +1,36 @@
+{
+    "theme_id": "geopolitical_war",
+    "theme_name": "中东战争走势分析",
+    "version": "1.0",
+    "description": "专注于中东地缘政治冲突和战争走势分析，包含军事、外交、能源三个维度",
+    
+    "files": {
+        "keywords": "keywords.json",
+        "analysis_prompt": "analysis.txt",
+        "trend_prompt": "trend.txt",
+        "report_template": "report.html"
+    },
+    
+    "data_extraction": {
+        "extract_casualties": true,
+        "extract_military_actions": true,
+        "extract_diplomatic_moves": true,
+        "extract_oil_impact": true,
+        "extract_economic_impact": false
+    },
+    
+    "analysis_settings": {
+        "max_articles": 15,
+        "lookback_days": 3,
+        "min_keyword_matches": 2,
+        "focus_areas": ["military", "diplomacy", "energy"]
+    },
+    
+    "report_style": {
+        "primary_color": "#ff0040",
+        "secondary_color": "#00ffff",
+        "accent_color": "#ff00ff",
+        "style": "cyberpunk",
+        "font_family": "'Orbitron', 'Share Tech Mono', monospace"
+    }
+}

@@ -1,0 +1,56 @@
+{
+    "countries": [
+        "Iran", "Israel", "Hamas", "Hezbollah", "Houthi", "Yemen",
+        "Saudi Arabia", "UAE", "Iraq", "Syria", "Turkey", "Lebanon",
+        "Middle East", "Persian Gulf", "Gaza", "West Bank", "Jordan",
+        "Egypt", "Qatar", "Kuwait", "Bahrain", "Oman", "Palestine"
+    ],
+    
+    "military": [
+        "war", "military", "attack", "strike", "missile",
+        "troops", "conflict", "bomb", "invasion", "casualties",
+        "air strike", "ground operation", "offensive", "rocket",
+        "drone", "nuclear", "weapon", "army", "navy", "air force",
+        "soldier", "fighter", "jet", "tank", "artillery",
+        "military base", "weapons", "ammunition", "shelling"
+    ],
+    
+    "diplomacy": [
+        "sanctions", "diplomacy", "JCPOA", "ceasefire",
+        "negotiation", "treaty", "UN", "Security Council",
+        "peace talks", "mediation", "diplomatic", "embassy",
+        "ambassador", "resolution", "condemn", "humanitarian",
+        "refugee", "displacement", "international law"
+    ],
+    
+    "energy": [
+        "oil", "crude", "energy", "pipeline", "refinery",
+        "OPEC", "petroleum", "gas field", "oil price",
+        "supply disruption", "Hormuz", "tanker", "barrel",
+        "Brent", "WTI", "natural gas", "LNG", "energy security",
+        "oil market", "production", "export", "import"
+    ],
+    
+    "organizations": [
+        "IDF", "IRGC", "Hamas", "Hezbollah", "Houthis",
+        "Pentagon", "NATO", "Arab League", "GCC",
+        "IAEA", "UNRWA", "Red Cross"
+    ],
+    
+    "key_figures": [
+        "Netanyahu", "Khamenei", "Biden", "Mohammed bin Salman",
+        "Blinken", "Gallant", "Sinwar", "Nasrallah"
+    ],
+    
+    "filter_rules": {
+        "min_keyword_matches": 2,
+        "priority_keywords": [
+            "Iran", "Israel", "Hormuz", "oil", 
+            "missile", "strike", "ceasefire", "sanctions"
+        ],
+        "exclude_keywords": [
+            "sports", "entertainment", "celebrity", 
+            "movie", "music", "fashion", "gaming"
+        ]
+    }
+}
