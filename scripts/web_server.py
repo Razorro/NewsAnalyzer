@@ -343,6 +343,21 @@ class WebServer:
             except Exception as e:
                 return jsonify({'success': False, 'message': str(e)})
         
+        @self.app.route('/api/rss/themes/<int:theme_id>', methods=['PUT'])
+        def update_theme(theme_id):
+            """更新主题描述"""
+            if not self.rss_manager:
+                return jsonify({'error': 'RSS管理器未初始化'}), 500
+            
+            try:
+                data = request.get_json()
+                description = data.get('description', '').strip()
+                
+                result = self.rss_manager.update_theme(theme_id, description)
+                return jsonify(result)
+            except Exception as e:
+                return jsonify({'success': False, 'message': str(e)})
+        
         @self.app.route('/api/rss/themes/<int:theme_id>/suggest', methods=['POST'])
         def suggest_keywords(theme_id):
             """AI推荐关键词"""
@@ -357,10 +372,11 @@ class WebServer:
                 if not theme:
                     return jsonify({'success': False, 'message': '主题不存在'})
                 
-                # 调用Ollama推荐
+                # 调用Ollama推荐（传递theme_id用于过滤）
                 keywords = self.rss_manager.suggest_keywords_for_theme(
                     theme['name'], 
-                    theme.get('description', '')
+                    theme.get('description', ''),
+                    theme_id=theme_id
                 )
                 
                 return jsonify({

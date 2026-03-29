@@ -179,22 +179,24 @@
         
         .theme-actions {
             display: flex;
-            gap: 6px;
+            gap: 10px;
             flex-shrink: 0;
         }
         
         .theme-action-btn {
-            padding: 4px 8px;
+            padding: 4px 10px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 10px;
             transition: all 0.3s ease;
             white-space: nowrap;
+            min-width: 28px;
+            text-align: center;
         }
         
         .theme-action-btn:hover {
-            transform: scale(1.05);
+            transform: scale(1.1);
         }
         
         .btn-toggle {
@@ -225,6 +227,11 @@
         .btn-delete-theme {
             background: rgba(255,0,64,0.2);
             color: var(--cyber-red);
+        }
+        
+        .btn-edit-desc {
+            background: rgba(0, 200, 255, 0.2);
+            color: #00c8ff;
         }
         
         .keywords-container {
@@ -1100,6 +1107,24 @@
         </div>
     </div>
     
+    <!-- 编辑主题描述弹窗 -->
+    <div class="modal" id="edit-description-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 class="modal-title">✏️ 编辑主题描述</h3>
+            <input type="hidden" id="edit-theme-id">
+            <div class="form-group">
+                <label>主题描述（用于AI推荐关键词）</label>
+                <textarea id="edit-theme-description" 
+                          placeholder="描述这个主题关注的具体内容、范围或子话题..."
+                          rows="4"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideEditDescriptionModal()">取消</button>
+                <button class="btn-primary" onclick="saveThemeDescription()">保存</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // 全局状态
         let themes = [];
@@ -1155,7 +1180,7 @@
                             <button class="theme-action-btn btn-expand" onclick="toggleThemeExpand(${theme.id})">
                                 ▼
                             </button>
-                            <button class="theme-action-btn btn-add-kw" onclick="showAddKeyword(${theme.id})">+词</button>
+                            <button class="theme-action-btn btn-edit-desc" onclick="showEditDescription(${theme.id}, '${(theme.description || '').replace(/'/g, "\\'")}')">📝</button>
                             <button class="theme-action-btn btn-ai-suggest" onclick="showAISuggest(${theme.id})">🤖</button>
                             <button class="theme-action-btn btn-delete-theme" onclick="deleteTheme(${theme.id})">×</button>
                         </div>
@@ -1352,7 +1377,9 @@
             
             try {
                 const response = await fetch(`/api/rss/themes/${themeId}/suggest`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({theme_id: themeId})
                 });
                 
                 const result = await response.json();
@@ -1739,6 +1766,44 @@
         
         // 监听手动输入变化
         document.getElementById('manual-keywords').addEventListener('input', updateSelectedKeywordsPreview);
+        
+        // 显示编辑描述弹窗
+        function showEditDescription(themeId, currentDescription) {
+            document.getElementById('edit-theme-id').value = themeId;
+            document.getElementById('edit-theme-description').value = currentDescription || '';
+            document.getElementById('edit-description-modal').classList.add('active');
+        }
+        
+        // 隐藏编辑描述弹窗
+        function hideEditDescriptionModal() {
+            document.getElementById('edit-description-modal').classList.remove('active');
+        }
+        
+        // 保存描述
+        async function saveThemeDescription() {
+            const themeId = document.getElementById('edit-theme-id').value;
+            const description = document.getElementById('edit-theme-description').value.trim();
+            
+            try {
+                const response = await fetch(`/api/rss/themes/${themeId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ description })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    hideEditDescriptionModal();
+                    loadThemesTree();
+                    showToast('描述更新成功', 'success');
+                } else {
+                    showToast(result.message || '更新失败', 'error');
+                }
+            } catch (e) {
+                console.error('更新描述失败:', e);
+                showToast('更新失败', 'error');
+            }
+        }
         
         // ==================== 左侧功能模块函数 ====================
         

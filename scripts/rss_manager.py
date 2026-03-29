@@ -524,7 +524,6 @@ class RSSManager:
                 # 转换为UTC时区
                 dt_utc = dt.astimezone(timezone.utc)
                 
-                print(f"  ✓ 日期解析成功: '{date_str}' → {dt_utc.isoformat()}")
                 return dt_utc.isoformat()
                 
             except ImportError:
@@ -1313,6 +1312,28 @@ class RSSManager:
         finally:
             conn.close()
     
+    def update_theme(self, theme_id: int, description: str) -> Dict:
+        """更新主题描述"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                UPDATE themes 
+                SET description = ?, updated_at = ?
+                WHERE id = ?
+            ''', (description, datetime.now().isoformat(), theme_id))
+            
+            if cursor.rowcount > 0:
+                conn.commit()
+                return {"success": True, "message": "描述更新成功"}
+            else:
+                return {"success": False, "message": "主题不存在"}
+        except Exception as e:
+            return {"success": False, "message": f"更新失败: {str(e)}"}
+        finally:
+            conn.close()
+    
     def add_keyword_to_theme(self, theme_id: int, keyword: str, is_auto: bool = False) -> Dict:
         """向主题添加关键词"""
         conn = sqlite3.connect(self.db_path)
@@ -1353,21 +1374,46 @@ class RSSManager:
         finally:
             conn.close()
     
-    def suggest_keywords_for_theme(self, theme_name: str, description: str = "") -> List[str]:
+    def suggest_keywords_for_theme(self, theme_name: str, description: str = "", theme_id: int = None) -> List[str]:
         """使用Ollama为主题推荐关键词"""
+        # 获取已有关键词（用于过滤）
+        existing_keywords = []
+        if theme_id:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT keyword FROM keywords WHERE category_id = (SELECT category_id FROM themes WHERE id = ?)', (theme_id,))
+            existing_keywords = [row[0].lower() for row in cursor.fetchall()]
+            conn.close()
+        
+        existing_keywords_text = ""
+        if existing_keywords:
+            existing_keywords_text = f"\n已有关键词（请避免推荐包含这些词的关键词）：{', '.join(existing_keywords)}"
+        
         prompt = f"""请为主题"{theme_name}"推荐20个相关的英文关键词，用于RSS新闻过滤。
 
 主题描述：{description if description else "无"}
+{existing_keywords_text}
+
+请从以下7个维度发散思考，但确保所有关键词都与主题紧密相关：
+
+1. **核心概念**：主题的直接相关词汇
+2. **相关概念**：扩展的关联概念和术语
+3. **影响领域**：该主题可能影响的方面
+4. **子主题**：主题下的细分领域或子话题
+5. **组织机构**：相关的国际组织、政府机构、非政府组织
+6. **事件类型**：相关的事件类别（如冲突、谈判、制裁等）
+7. **同义词/近义词**：表达相同或相似意思的替代表达
 
 要求：
-1. 关键词应该是英文
-2. 关键词应该与主题高度相关
-3. 关键词可以是单词或短语
-4. 返回JSON格式
+- 关键词必须是英文
+- 每个维度至少提供2-3个关键词
+- 关键词可以是单词或短语（1-3个词）
+- 确保关键词具有新闻搜索价值
+- **重要：不要推荐任何包含已有关键词的词汇**
 
-请返回：
+请返回JSON格式：
 {{
-    "keywords": ["keyword1", "keyword2", "keyword3", ...]
+    "keywords": ["keyword1", "keyword2", ...]
 }}
 
 只返回JSON，不要有其他内容。"""
@@ -1378,7 +1424,7 @@ class RSSManager:
             response = ollama.chat(
                 model=self.ollama_analyzer.translation_model,
                 messages=[{'role': 'user', 'content': prompt}],
-                options={"temperature": 0.5}
+                options={"temperature": 0.7}
             )
             
             result_text = response['message']['content']
@@ -1388,7 +1434,23 @@ class RSSManager:
             json_match = re.search(r'\{[\s\S]*\}', result_text)
             if json_match:
                 result = json.loads(json_match.group())
-                return result.get('keywords', [])
+                keywords = result.get('keywords', [])
+                
+                # 过滤掉包含已有关键词的词汇（双重保险）
+                if existing_keywords:
+                    filtered = []
+                    for kw in keywords:
+                        kw_lower = kw.lower()
+                        should_skip = False
+                        for existing_kw in existing_keywords:
+                            if existing_kw in kw_lower:
+                                should_skip = True
+                                break
+                        if not should_skip:
+                            filtered.append(kw)
+                    return filtered
+                
+                return keywords
             
         except Exception as e:
             print(f"Ollama推荐失败: {e}")
@@ -1415,13 +1477,32 @@ class RSSManager:
                 conn.close()
                 return {"success": False, "message": "主题未关联分类", "imported": 0, "total": len(keywords)}
             
-            # 批量导入关键词到 keywords 表（新表）
-            success_count = 0
+            # 获取已有关键词
+            cursor.execute('SELECT keyword FROM keywords WHERE category_id = ?', (category_id,))
+            existing_keywords = [row[0] for row in cursor.fetchall()]
+            
+            # 过滤AI生成的关键词（大小写不敏感）
+            filtered_keywords = []
             for keyword in keywords:
                 keyword = keyword.strip()
                 if not keyword:
                     continue
                 
+                # 检查是否包含任何已有关键词（大小写不敏感）
+                should_skip = False
+                keyword_lower = keyword.lower()
+                for existing_kw in existing_keywords:
+                    if existing_kw.lower() in keyword_lower:
+                        should_skip = True
+                        print(f"  ⏭️ 跳过 '{keyword}'（已有关键词 '{existing_kw}' 已覆盖）")
+                        break
+                
+                if not should_skip:
+                    filtered_keywords.append(keyword)
+            
+            # 批量导入过滤后的关键词到 keywords 表（新表）
+            success_count = 0
+            for keyword in filtered_keywords:
                 try:
                     cursor.execute('''
                         INSERT OR IGNORE INTO keywords (keyword, category_id, source)
@@ -1435,7 +1516,7 @@ class RSSManager:
             conn.commit()
             conn.close()
             
-            return {"success": True, "imported": success_count, "total": len(keywords)}
+            return {"success": True, "imported": success_count, "total": len(keywords), "filtered": len(keywords) - len(filtered_keywords)}
             
         except Exception as e:
             conn.rollback()

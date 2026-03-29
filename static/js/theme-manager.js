@@ -60,9 +60,9 @@ function renderThemeTree() {
                             aria-expanded="${expandedThemes.has(theme.id)}">
                         ▼
                     </button>
-                    <button class="theme-action-btn btn-add-kw" 
-                            onclick="showAddKeyword(${theme.id})"
-                            aria-label="添加关键词">+词</button>
+                    <button class="theme-action-btn btn-edit-desc" 
+                            onclick="showEditDescription(${theme.id}, '${(theme.description || '').replace(/'/g, "\\'")}')"
+                            aria-label="编辑描述">📝</button>
                     <button class="theme-action-btn btn-ai-suggest" 
                             onclick="showAISuggest(${theme.id})"
                             aria-label="AI推荐关键词">🤖</button>
@@ -75,6 +75,11 @@ function renderThemeTree() {
                  id="keywords-${theme.id}"
                  role="region"
                  aria-label="关键词列表">
+                ${theme.description ? `
+                    <div style="padding: 8px 12px; background: rgba(0,255,255,0.05); border-bottom: 1px solid var(--cyber-border); font-size: 11px; color: var(--cyber-gray);">
+                        📝 ${theme.description}
+                    </div>
+                ` : ''}
                 <div class="keywords-header">
                     <span class="keywords-title">关键词列表</span>
                     <span class="keywords-count">${theme.keyword_count}个</span>
@@ -539,6 +544,44 @@ async function createTheme() {
 // 监听手动输入变化
 document.getElementById('manual-keywords').addEventListener('input', updateSelectedKeywordsPreview);
 
+// 显示编辑描述弹窗
+function showEditDescription(themeId, currentDescription) {
+    document.getElementById('edit-theme-id').value = themeId;
+    document.getElementById('edit-theme-description').value = currentDescription || '';
+    document.getElementById('edit-description-modal').classList.add('active');
+}
+
+// 隐藏编辑描述弹窗
+function hideEditDescriptionModal() {
+    document.getElementById('edit-description-modal').classList.remove('active');
+}
+
+// 保存描述
+async function saveThemeDescription() {
+    const themeId = document.getElementById('edit-theme-id').value;
+    const description = document.getElementById('edit-theme-description').value.trim();
+    
+    try {
+        const response = await fetch(`/api/rss/themes/${themeId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ description })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            hideEditDescriptionModal();
+            loadThemesTree();
+            Utils.showToast('描述更新成功', 'success');
+        } else {
+            Utils.showToast(result.message || '更新失败', 'error');
+        }
+    } catch (e) {
+        console.error('更新描述失败:', e);
+        Utils.showToast('更新失败', 'error');
+    }
+}
+
 // 导出主题管理函数
 window.ThemeManager = {
     loadThemesTree,
@@ -565,5 +608,8 @@ window.ThemeManager = {
     showAISuggestForNewTheme,
     updateSelectedKeywordsPreview,
     removeSelectedKeyword,
-    createTheme
+    createTheme,
+    showEditDescription,
+    hideEditDescriptionModal,
+    saveThemeDescription
 };
