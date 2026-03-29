@@ -591,7 +591,7 @@ class RSSManager:
         conn.close()
     
     def _deduplicate(self, articles: List[Dict]) -> List[Dict]:
-        """去重"""
+        """去重（基于URL）"""
         seen_urls = set()
         unique = []
         
@@ -603,6 +603,47 @@ class RSSManager:
         
         return unique
     
+    def _calculate_title_similarity(self, title1: str, title2: str) -> float:
+        """计算两个标题的相似度（0-1）"""
+        from difflib import SequenceMatcher
+        import re
+        
+        def normalize(text):
+            """标准化：转小写、去除标点和多余空格"""
+            text = text.lower()
+            text = re.sub(r'[^\w\s]', '', text)  # 去除标点
+            text = re.sub(r'\s+', ' ', text).strip()  # 合并空格
+            return text
+        
+        t1 = normalize(title1)
+        t2 = normalize(title2)
+        
+        return SequenceMatcher(None, t1, t2).ratio()
+    
+    def _is_duplicate_by_title(self, title: str, threshold: float = 0.85) -> bool:
+        """检查标题是否与已有新闻重复"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # 只查询最近3天的新闻
+        three_days_ago = (datetime.now() - timedelta(days=3)).isoformat()
+        cursor.execute('''
+            SELECT title FROM news 
+            WHERE created_at >= ? AND analysis_status = 'completed'
+        ''', (three_days_ago,))
+        
+        existing_titles = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        
+        # 计算相似度
+        for existing_title in existing_titles:
+            similarity = self._calculate_title_similarity(title, existing_title)
+            if similarity >= threshold:
+                print(f"  🔍 标题相似度 {similarity:.2f}: '{title[:30]}...' ≈ '{existing_title[:30]}...'")
+                return True
+        
+        return False
+    
     def save_articles(self, articles: List[Dict]) -> List[str]:
         """保存文章到数据库，返回新文章ID列表"""
         conn = sqlite3.connect(self.db_path)
@@ -611,6 +652,11 @@ class RSSManager:
         new_ids = []
         
         for article in articles:
+            # 标题相似度检查（如果标题与已有新闻高度相似，则跳过）
+            if self._is_duplicate_by_title(article['title']):
+                print(f"  ⏭️ 跳过相似标题: {article['title'][:50]}...")
+                continue
+            
             try:
                 cursor.execute('''
                     INSERT OR IGNORE INTO news (id, title, source, source_name, url, published_at, summary)
