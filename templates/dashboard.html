@@ -3,317 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OilAnalyzer 实时监控仪表盘</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-        
-        :root {
-            --cyber-bg: #0a0a0f;
-            --cyber-card: #0d1117;
-            --cyber-cyan: #00ffff;
-            --cyber-magenta: #ff00ff;
-            --cyber-green: #00ff00;
-            --cyber-orange: #ff6600;
-            --cyber-red: #ff0040;
-            --cyber-border: #30363d;
-            --cyber-text: #e6edf3;
-            --cyber-gray: #8b949e;
-        }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Share Tech Mono', monospace;
-            background: var(--cyber-bg);
-            min-height: 100vh;
-            color: var(--cyber-text);
-            background-image: 
-                linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-        }
-        
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        
-        .header {
-            text-align: center;
-            padding: 30px;
-            background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1));
-            border: 2px solid var(--cyber-cyan);
-            margin-bottom: 20px;
-        }
-        
-        .header h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 36px;
-            color: var(--cyber-cyan);
-            text-shadow: 0 0 20px var(--cyber-cyan);
-            margin-bottom: 10px;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 8px 20px;
-            background: var(--cyber-green);
-            color: black;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        
-        .cyber-card {
-            background: var(--cyber-card);
-            border: 1px solid var(--cyber-border);
-            padding: 25px;
-            margin-bottom: 20px;
-            position: relative;
-        }
-        
-        .cyber-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-magenta), var(--cyber-green));
-        }
-        
-        .card-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 18px;
-            color: var(--cyber-cyan);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .score-display { text-align: center; margin: 20px 0; }
-        
-        .score-number {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 100px;
-            font-weight: 900;
-            color: var(--cyber-cyan);
-            text-shadow: 0 0 30px var(--cyber-cyan);
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-        
-        @keyframes glow {
-            from { text-shadow: 0 0 30px var(--cyber-cyan); }
-            to { text-shadow: 0 0 60px var(--cyber-cyan), 0 0 90px var(--cyber-cyan); }
-        }
-        
-        .trend-badge {
-            display: inline-block;
-            padding: 10px 25px;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-        
-        .trend-up { background: var(--cyber-red); color: white; }
-        .trend-down { background: var(--cyber-green); color: black; }
-        .trend-stable { background: var(--cyber-orange); color: black; }
-        
-        .dimensions-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .dimension-card {
-            background: rgba(0,255,255,0.05);
-            border: 1px solid var(--cyber-border);
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .dimension-score {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 36px;
-            font-weight: 700;
-            margin: 10px 0;
-        }
-        
-        .dimension-delta {
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        
-        .delta-up { color: var(--cyber-red); }
-        .delta-down { color: var(--cyber-green); }
-        .delta-stable { color: var(--cyber-gray); }
-        
-        .insights-list { list-style: none; }
-        
-        .insights-list li {
-            padding: 15px;
-            margin-bottom: 10px;
-            background: rgba(0,255,255,0.05);
-            border-left: 4px solid var(--cyber-cyan);
-        }
-        
-        .new-insight { border-left-color: var(--cyber-magenta); }
-        
-        .timestamp {
-            text-align: center;
-            color: var(--cyber-gray);
-            font-size: 12px;
-            margin-top: 20px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: var(--cyber-gray);
-        }
-        
-        @media (max-width: 768px) {
-            .dimensions-grid { grid-template-columns: 1fr; }
-            .score-number { font-size: 60px; }
-        }
-    </style>
+    <meta name="description" content="NewsAnalyzer - RSS新闻监控仪表盘">
+    <meta name="keywords" content="新闻监控,RSS,地缘政治,能源市场">
+    <title>🛢️ NewsAnalyzer - RSS新闻监控</title>
+    
+    <!-- 外部CSS文件 -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" as="style">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🛢️ OILANALYZER</h1>
-            <p>实时地缘政治威胁监控仪表盘</p>
-            <span class="status-badge" id="status">📡 连接中...</span>
-        </div>
+    <!-- 跳过链接 - 可访问性 -->
+    <a href="#main-content" class="skip-link">跳过导航</a>
+    
+    <div class="header" role="banner">
+        <h1>🛢️ NEWSANALYZER - RSS新闻监控</h1>
+        <p>实时地缘政治新闻流 + AI智能分析</p>
         
-        <div class="cyber-card">
-            <div class="card-title">📊 威胁等级</div>
-            <div class="score-display">
-                <div class="score-number" id="crisis-score">--</div>
-                <div style="color: var(--cyber-gray);">/ 10</div>
-                <div class="trend-badge" id="trend-badge">加载中...</div>
-            </div>
+        <!-- 搜索和过滤控件 -->
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            <input type="text" 
+                   id="search-input" 
+                   placeholder="搜索新闻..." 
+                   aria-label="搜索新闻"
+                   style="padding: 8px 12px; border: 1px solid var(--cyber-border); border-radius: 4px; background: rgba(0,0,0,0.3); color: var(--cyber-text); font-family: inherit; min-width: 200px;">
+            
+            <select id="category-filter" 
+                    aria-label="按类别过滤"
+                    style="padding: 8px 12px; border: 1px solid var(--cyber-border); border-radius: 4px; background: rgba(0,0,0,0.3); color: var(--cyber-text); font-family: inherit;">
+                <option value="all">所有类别</option>
+                <option value="军事">军事</option>
+                <option value="外交">外交</option>
+                <option value="能源">能源</option>
+                <option value="经济">经济</option>
+            </select>
+            
+            <select id="time-filter" 
+                    aria-label="按时间过滤"
+                    style="padding: 8px 12px; border: 1px solid var(--cyber-border); border-radius: 4px; background: rgba(0,0,0,0.3); color: var(--cyber-text); font-family: inherit;">
+                <option value="all">所有时间</option>
+                <option value="today">今天</option>
+                <option value="week">本周</option>
+            </select>
+            
+            <select id="sort-select" 
+                    aria-label="排序方式"
+                    style="padding: 8px 12px; border: 1px solid var(--cyber-border); border-radius: 4px; background: rgba(0,0,0,0.3); color: var(--cyber-text); font-family: inherit;">
+                <option value="time">按时间排序</option>
+                <option value="impact">按影响排序</option>
+            </select>
+            
+            <button id="refresh-btn" 
+                    aria-label="刷新新闻"
+                    style="padding: 8px 16px; background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta)); border: none; border-radius: 4px; color: black; font-weight: bold; cursor: pointer; font-family: inherit;">
+                🔄 刷新
+            </button>
+            
+            <button id="export-json" 
+                    aria-label="导出JSON"
+                    style="padding: 8px 12px; background: rgba(0,255,0,0.2); border: 1px solid var(--cyber-green); border-radius: 4px; color: var(--cyber-green); cursor: pointer; font-family: inherit;">
+                📄 JSON
+            </button>
+            
+            <button id="export-csv" 
+                    aria-label="导出CSV"
+                    style="padding: 8px 12px; background: rgba(0,255,255,0.2); border: 1px solid var(--cyber-cyan); border-radius: 4px; color: var(--cyber-cyan); cursor: pointer; font-family: inherit;">
+                📊 CSV
+            </button>
         </div>
-        
-        <div class="cyber-card">
-            <div class="card-title">📈 三维评估</div>
-            <div class="dimensions-grid">
-                <div class="dimension-card">
-                    <div>⚔️ 军事</div>
-                    <div class="dimension-score" id="military-score">--</div>
-                    <div class="dimension-delta" id="military-delta">--</div>
-                </div>
-                <div class="dimension-card">
-                    <div>🤝 外交</div>
-                    <div class="dimension-score" id="diplomacy-score">--</div>
-                    <div class="dimension-delta" id="diplomacy-delta">--</div>
-                </div>
-                <div class="dimension-card">
-                    <div>⛽ 能源</div>
-                    <div class="dimension-score" id="energy-score">--</div>
-                    <div class="dimension-delta" id="energy-delta">--</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="cyber-card">
-            <div class="card-title">💡 关键洞察</div>
-            <ul class="insights-list" id="insights-list">
-                <li class="loading">加载中...</li>
-            </ul>
-        </div>
-        
-        <div class="timestamp" id="timestamp">最后更新: --</div>
     </div>
     
-    <script>
-        // SSE连接
-        const eventSource = new EventSource('/stream');
-        
-        eventSource.onmessage = function(event) {
-            try {
-                const data = JSON.parse(event.data);
-                updateDashboard(data);
-                document.getElementById('status').textContent = '🟢 实时连接';
-            } catch (e) {
-                console.error('解析数据失败:', e);
-            }
-        };
-        
-        eventSource.onerror = function() {
-            document.getElementById('status').textContent = '🔴 连接断开';
-        };
-        
-        function updateDashboard(data) {
-            const lastAnalysis = data.last_analysis || {};
-            const incremental = data.incremental || {};
+    <main id="main-content" class="container" role="main">
+        <!-- 左侧面板 -->
+        <div class="left-panel">
+            <!-- 刷新倒计时 -->
+            <div class="cyber-card">
+                <div class="card-title">⏱️ 下次刷新</div>
+                <div style="text-align: center; padding: 10px 0;">
+                    <div id="countdown-display" style="font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900; color: var(--cyber-cyan); text-shadow: 0 0 20px var(--cyber-cyan);">
+                        --:--
+                    </div>
+                    <div style="margin-top: 10px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                        <div id="countdown-progress" style="height: 100%; background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-green)); width: 100%; transition: width 1s linear;"></div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button id="manual-fetch-btn" 
+                                aria-label="立即刷新数据"
+                                style="padding: 6px 16px; background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta)); border: none; border-radius: 4px; color: black; font-weight: bold; cursor: pointer; font-size: 11px;">🔄 立即刷新</button>
+                    </div>
+                </div>
+            </div>
             
-            // 更新危机评分
-            const score = lastAnalysis.crisis_score || 0;
-            document.getElementById('crisis-score').textContent = score.toFixed(1);
-            
-            // 更新趋势
-            const trend = lastAnalysis.trend || 'stable';
-            const trendBadge = document.getElementById('trend-badge');
-            trendBadge.className = 'trend-badge';
-            
-            if (trend === 'escalating') {
-                trendBadge.textContent = '⬆ 升级';
-                trendBadge.classList.add('trend-up');
-            } else if (trend === 'de-escalating') {
-                trendBadge.textContent = '⬇ 降级';
-                trendBadge.classList.add('trend-down');
-            } else {
-                trendBadge.textContent = '➡ 稳定';
-                trendBadge.classList.add('trend-stable');
-            }
-            
-            // 更新三个维度
-            const dimensions = lastAnalysis.dimensions || {};
-            const dimChanges = incremental.dimension_changes || {};
-            
-            ['military', 'diplomacy', 'energy'].forEach(dim => {
-                const dimData = dimensions[dim] || {};
-                const change = dimChanges[dim] || {};
+            <!-- 总体看板 -->
+            <div class="cyber-card">
+                <div class="card-title">📊 总体看板</div>
                 
-                document.getElementById(`${dim}-score`).textContent = (dimData.score || 0).toFixed(1);
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-cyan); text-shadow: 0 0 10px var(--cyber-cyan);" id="today-count">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">今日新闻</div>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-cyan); text-shadow: 0 0 10px var(--cyber-cyan);" id="alert-count">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">重要事件</div>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-orange); text-shadow: 0 0 10px var(--cyber-orange);" id="pending-analysis">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">待分析</div>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.05); border: 1px solid var(--cyber-border); border-radius: 6px; padding: 12px; text-align: center;">
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyber-cyan); text-shadow: 0 0 10px var(--cyber-cyan);" id="active-feeds">0</div>
+                        <div style="font-size: 11px; color: var(--cyber-gray); margin-top: 4px;">活跃订阅</div>
+                    </div>
+                </div>
                 
-                const deltaEl = document.getElementById(`${dim}-delta`);
-                const delta = change.delta || 0;
+                <div style="font-size: 14px; color: var(--cyber-cyan); margin-bottom: 10px;">📈 分类分布</div>
+                <div id="category-bars">
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>⚔️ 军事</span><span id="cat-military">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-red); border-radius: 4px; transition: width 0.5s ease;" id="bar-military"></div></div>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>⛽ 能源</span><span id="cat-energy">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-orange); border-radius: 4px; transition: width 0.5s ease;" id="bar-energy"></div></div>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>🤝 外交</span><span id="cat-diplomacy">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-cyan); border-radius: 4px; transition: width 0.5s ease;" id="bar-diplomacy"></div></div>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;"><span>💰 经济</span><span id="cat-economic">0</span></div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-green); border-radius: 4px; transition: width 0.5s ease;" id="bar-economic"></div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 整体情绪 -->
+            <div class="cyber-card">
+                <div class="card-title">🌡️ 整体情绪</div>
                 
-                if (delta > 0) {
-                    deltaEl.textContent = `▲ +${delta.toFixed(2)}`;
-                    deltaEl.className = 'dimension-delta delta-up';
-                } else if (delta < 0) {
-                    deltaEl.textContent = `▼ ${delta.toFixed(2)}`;
-                    deltaEl.className = 'dimension-delta delta-down';
-                } else {
-                    deltaEl.textContent = '━ 无变化';
-                    deltaEl.className = 'dimension-delta delta-stable';
-                }
-            });
+                <div style="text-align: center; margin: 15px 0;">
+                    <div style="font-family: 'Orbitron', sans-serif; font-size: 48px; font-weight: 900; color: var(--cyber-cyan); text-shadow: 0 0 30px var(--cyber-cyan);" id="tension-value">5.0</div>
+                    <div style="color: var(--cyber-gray); font-size: 12px;">/ 10</div>
+                    <div style="font-size: 14px; margin-top: 5px;" id="tension-trend">➡️ 稳定</div>
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px;">
+                        <span style="width: 50px; color: var(--cyber-gray);">负面</span>
+                        <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: linear-gradient(90deg, var(--cyber-red), var(--cyber-orange)); transition: width 0.8s ease;" id="negative-bar"></div></div>
+                        <span style="width: 45px; text-align: right; font-weight: bold;" id="negative-value">50%</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px;">
+                        <span style="width: 50px; color: var(--cyber-gray);">中性</span>
+                        <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-gray); transition: width 0.8s ease;" id="neutral-bar"></div></div>
+                        <span style="width: 45px; text-align: right; font-weight: bold;" id="neutral-value">40%</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 12px;">
+                        <span style="width: 50px; color: var(--cyber-gray);">正面</span>
+                        <div style="flex: 1; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: var(--cyber-green); transition: width 0.8s ease;" id="positive-bar"></div></div>
+                        <span style="width: 45px; text-align: right; font-weight: bold;" id="positive-value">10%</span>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255,102,0,0.1); border: 1px solid var(--cyber-orange); border-radius: 6px; padding: 12px; margin: 10px 0;">
+                    <div style="font-size: 12px; color: var(--cyber-gray);">🛢️ 油价预期</div>
+                    <div style="font-size: 18px; font-weight: bold; margin-top: 5px;" id="oil-direction">震荡</div>
+                    <div style="font-size: 11px; color: var(--cyber-gray);" id="oil-confidence">置信度: 50%</div>
+                </div>
+                
+                <div id="dominant-factors">
+                    <div style="font-size: 12px; color: var(--cyber-gray); margin-bottom: 8px;">📌 主导因素</div>
+                </div>
+            </div>
             
-            // 更新洞察列表
-            const insights = lastAnalysis.key_insights || [];
-            const newInsights = incremental.new_insights || [];
-            const insightsList = document.querySelector('.insights-list');
+            <!-- 预警 -->
+            <div class="cyber-card">
+                <div class="card-title">⚠️ 实时预警</div>
+                <div id="alerts-list" style="max-height: 200px; overflow-y: auto;">
+                    <div style="text-align: center; color: var(--cyber-gray); padding: 20px;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">✓</div>
+                        <p>暂无预警</p>
+                    </div>
+                </div>
+            </div>
             
-            insightsList.innerHTML = insights.map(insight => {
-                const isNew = newInsights.includes(insight);
-                return `<li class="${isNew ? 'new-insight' : ''}">${isNew ? '🆕 ' : '▸ '}${insight}</li>`;
-            }).join('');
+            <!-- 订阅源管理 -->
+            <div class="cyber-card">
+                <div class="card-title">📡 订阅源管理</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" 
+                           id="feed-name" 
+                           placeholder="订阅源名称" 
+                           aria-label="订阅源名称"
+                           style="background: rgba(0,0,0,0.3); border: 1px solid var(--cyber-border); border-radius: 4px; padding: 10px; color: var(--cyber-text); font-family: inherit;">
+                    <input type="text" 
+                           id="feed-url" 
+                           placeholder="RSS URL" 
+                           aria-label="RSS URL"
+                           style="background: rgba(0,0,0,0.3); border: 1px solid var(--cyber-border); border-radius: 4px; padding: 10px; color: var(--cyber-text); font-family: inherit;">
+                    <button onclick="addFeed()" 
+                            aria-label="添加订阅源"
+                            style="background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta)); border: none; border-radius: 4px; padding: 10px; color: black; font-weight: bold; font-family: 'Orbitron', sans-serif; cursor: pointer;">+ 添加订阅源</button>
+                </div>
+                
+                <div id="feeds-list" style="max-height: 300px; overflow-y: auto;">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
             
-            // 更新时间戳
-            const timestamp = lastAnalysis.timestamp || '未知';
-            document.querySelector('.timestamp').textContent = `最后更新: ${timestamp}`;
-        }
+            <!-- 主题管理（树状展示） -->
+            <div class="cyber-card">
+                <div class="card-title">📂 主题管理</div>
+                
+                <button class="add-theme-btn" onclick="showCreateThemeModal()">
+                    ➕ 新建主题
+                </button>
+                
+                <div class="theme-tree" id="theme-tree">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         
-        // 初始加载
-        fetch('/api/analysis')
-            .then(response => response.json())
-            .then(data => {
-                if (!data.error) {
-                    updateDashboard(data);
-                }
-            })
-            .catch(err => console.error('加载失败:', err));
-    </script>
+        <!-- 右侧新闻流 -->
+        <div class="right-panel">
+            <div class="cyber-card" style="flex: 1;">
+                <div class="card-title">💬 实时新闻流</div>
+                <div class="news-feed" id="news-feed">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>等待新闻数据...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 新建主题弹窗 -->
+    <div class="modal" id="create-theme-modal" role="dialog" aria-labelledby="create-theme-title" aria-modal="true">
+        <div class="modal-content">
+            <h3 class="modal-title" id="create-theme-title">➕ 新建主题</h3>
+            
+            <div class="form-group">
+                <label for="new-theme-name">主题名称 *</label>
+                <input type="text" id="new-theme-name" placeholder="例如：中东局势、原油市场" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new-theme-desc">主题描述</label>
+                <textarea id="new-theme-desc" placeholder="描述这个主题关注的内容..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="manual-keywords">关键词（手动输入，每行一个）</label>
+                <textarea id="manual-keywords" placeholder="输入关键词，每行一个..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <button class="btn-ai" onclick="showAISuggestForNewTheme()">
+                    🤖 让AI推荐关键词
+                </button>
+            </div>
+            
+            <div class="selected-keywords-preview" id="selected-keywords-preview" style="display: none;">
+                <div class="label">已选关键词：</div>
+                <div class="selected-keywords-list" id="selected-keywords-list"></div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideCreateThemeModal()">取消</button>
+                <button class="btn-primary" onclick="createTheme()">创建主题</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI推荐弹窗 -->
+    <div class="modal" id="ai-suggest-modal" role="dialog" aria-labelledby="ai-suggest-title" aria-modal="true">
+        <div class="modal-content">
+            <h3 class="modal-title" id="ai-suggest-title">🤖 AI推荐关键词</h3>
+            <p style="color: var(--cyber-gray); font-size: 12px; margin-bottom: 16px;">点击选择关键词，再次点击取消选择</p>
+            
+            <div class="ai-keywords-grid" id="ai-keywords-grid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>AI正在思考中...</p>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-ai" onclick="regenerateKeywords()">🔄 重新生成</button>
+                <button class="btn-primary" onclick="importSelectedKeywords()">✅ 导入选中</button>
+                <button class="btn-secondary" onclick="hideAISuggestModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑关键词弹窗 -->
+    <div class="modal" id="edit-keyword-modal" role="dialog" aria-labelledby="edit-keyword-title" aria-modal="true">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 class="modal-title" id="edit-keyword-title">✏️ 编辑关键词</h3>
+            <input type="text" id="edit-keyword-input" placeholder="输入新的关键词">
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideEditKeywordModal()">取消</button>
+                <button class="btn-primary" onclick="confirmEditKeyword()">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 外部JavaScript文件 -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/theme-manager.js"></script>
+    <script src="/static/js/news-feed.js"></script>
+    <script src="/static/js/stats-manager.js"></script>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 </html>
