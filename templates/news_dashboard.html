@@ -1025,7 +1025,14 @@
         <!-- 右侧新闻流 -->
         <div class="right-panel">
             <div class="cyber-card" style="flex: 1;">
-                <div class="card-title">💬 实时新闻流</div>
+                <div class="card-title" style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>💬 实时新闻流</span>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; font-family: 'Share Tech Mono', monospace;">
+                        <input type="checkbox" id="filter-important" onchange="toggleImportantFilter()" 
+                               style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--cyber-orange);">
+                        <span style="color: var(--cyber-orange);">⚠️ 只看重要事件</span>
+                    </label>
+                </div>
                 <div class="news-feed" id="news-feed">
                     <div class="loading">
                         <div class="loading-spinner"></div>
@@ -1135,6 +1142,7 @@
         let newThemeSelectedKeywords = [];
         let expandedThemes = new Set(); // 记录展开的主题ID
         let expandedFeeds = new Set(); // 记录展开的订阅源ID
+        let filterImportantOnly = false; // 只看重要事件筛选状态
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -1646,6 +1654,11 @@
         
         // 添加新闻气泡
         function addNewsBubble(news, isNew = false) {
+            // 筛选逻辑：如果开启只看重要事件，且该新闻不是重要事件，则跳过
+            if (filterImportantOnly && !news.is_important) {
+                return;
+            }
+            
             const feed = document.getElementById('news-feed');
             
             const analysis = news.ollama_analysis || {};
@@ -2247,6 +2260,21 @@
                     }
                 }, 400);
             }, 5000);
+        }
+        
+        // 切换重要事件筛选
+        function toggleImportantFilter() {
+            filterImportantOnly = document.getElementById('filter-important').checked;
+            
+            // 显示提示
+            if (filterImportantOnly) {
+                showToast('已开启重要事件筛选', 'info');
+            } else {
+                showToast('已关闭筛选，显示所有新闻', 'info');
+            }
+            
+            // 重新加载新闻
+            loadNews();
         }
         
         // 更新初始化函数
