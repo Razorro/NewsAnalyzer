@@ -652,10 +652,10 @@ class RSSManager:
         new_ids = []
         
         for article in articles:
-            # 标题相似度检查（如果标题与已有新闻高度相似，则跳过）
-            if self._is_duplicate_by_title(article['title']):
-                print(f"  ⏭️ 跳过相似标题: {article['title'][:50]}...")
-                continue
+            # # 标题相似度检查（如果标题与已有新闻高度相似，则跳过）
+            # if self._is_duplicate_by_title(article['title']):
+            #     print(f"  ⏭️ 跳过相似标题: {article['title'][:50]}...")
+            #     continue
             
             try:
                 cursor.execute('''
@@ -1340,20 +1340,54 @@ class RSSManager:
             conn.close()
     
     def delete_theme(self, theme_id: int) -> Dict:
-        """删除主题"""
+        """
+        删除主题（级联删除关联的分类和关键词）
+        
+        Args:
+            theme_id: 主题ID
+            
+        Returns:
+            操作结果
+        """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
+            # 1. 获取主题信息
+            cursor.execute('SELECT category_id FROM themes WHERE id = ?', (theme_id,))
+            theme = cursor.fetchone()
+            
+            if not theme:
+                conn.close()
+                return {"success": False, "message": "主题不存在"}
+            
+            category_id = theme[0]
+            
+            # 2. 删除关联的关键词（如果存在分类）
+            deleted_keywords = 0
+            if category_id:
+                cursor.execute('DELETE FROM keywords WHERE category_id = ?', (category_id,))
+                deleted_keywords = cursor.rowcount
+                
+                # 3. 删除关键词分类
+                cursor.execute('DELETE FROM keyword_categories WHERE id = ?', (category_id,))
+            
+            # 4. 删除主题
             cursor.execute('DELETE FROM themes WHERE id = ?', (theme_id,))
-            deleted = cursor.rowcount > 0
+            deleted_theme = cursor.rowcount > 0
+            
             conn.commit()
             
-            if deleted:
-                return {"success": True, "message": "主题已删除"}
+            if deleted_theme:
+                message = "主题已删除"
+                if deleted_keywords > 0:
+                    message += f"（含 {deleted_keywords} 个关联关键词）"
+                return {"success": True, "message": message}
             else:
-                return {"success": False, "message": "主题不存在"}
+                return {"success": False, "message": "主题删除失败"}
+                
         except Exception as e:
+            conn.rollback()
             return {"success": False, "message": f"删除失败: {str(e)}"}
         finally:
             conn.close()
