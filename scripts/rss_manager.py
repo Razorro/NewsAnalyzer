@@ -769,7 +769,7 @@ class RSSManager:
         prompt = f"""请分析以下新闻内容，返回JSON格式的分析结果：
 
 新闻标题：{title}
-新闻内容：{content[:800]}
+新闻内容：{content[:1000]}
 
 请返回以下结构的JSON（不要包含其他内容）：
 {{
@@ -798,7 +798,7 @@ class RSSManager:
     "chinese_summary": "一句话中文摘要"
 }}"""
 
-        model_name = self.ollama_analyzer.translation_model
+        model_name = self.ollama_analyzer.analysis_model
         
         try:
             import ollama
@@ -806,13 +806,21 @@ class RSSManager:
             print(f"    📡 调用Ollama模型: {model_name}")
             print(f"    📝 标题: {title[:50]}...")
             
-            response = ollama.chat(
-                model=model_name,
-                messages=[{'role': 'user', 'content': prompt}],
-                options={"temperature": 0.3}
-            )
-            
-            result_text = response['message']['content']
+            # 使用带工具调用的聊天方法（支持web_search）
+            if hasattr(self.ollama_analyzer, '_chat_with_tools'):
+                result_text = self.ollama_analyzer._chat_with_tools(
+                    model=model_name,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    use_search=True  # 启用搜索工具
+                )
+            else:
+                # 回退到直接调用
+                response = ollama.chat(
+                    model=model_name,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    options={"temperature": 0.3}
+                )
+                result_text = response['message']['content']
             
             print(f"    📥 响应长度: {len(result_text)} 字符")
             
