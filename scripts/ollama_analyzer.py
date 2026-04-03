@@ -290,7 +290,9 @@ class OllamaAnalyzer:
         if use_search and self.search_enabled and self.searcher and model == self.analysis_model:
             kwargs["tools"] = [self.searcher.get_tool_definition()]
         
+        # 保存原始响应（用于回退）
         response = ollama.chat(**kwargs)
+        original_content = response.get('message', {}).get('content', '')
         
         # 处理工具调用
         if response.get('message', {}).get('tool_calls'):
@@ -313,6 +315,8 @@ class OllamaAnalyzer:
                         max_results=arguments.get('num_results', self.search_max_results)
                     )
                     
+                    print(f"    📄 搜索结果长度: {len(search_results)} 字符")
+                    
                     # 将搜索结果添加到消息列表
                     messages.append({
                         "role": "tool",
@@ -321,14 +325,30 @@ class OllamaAnalyzer:
             
             # 再次调用模型获取最终回答
             print(f"    🔄 将搜索结果返回模型...")
-            final_response = ollama.chat(
-                model=model,
-                messages=messages,
-                options={"temperature": 0.3}
-            )
-            return final_response['message']['content']
+            print(f"    📊 当前消息列表长度: {len(messages)}")
+            
+            try:
+                final_response = ollama.chat(
+                    model=model,
+                    messages=messages,
+                    options={"temperature": 0.3}
+                )
+                
+                result_text = final_response.get('message', {}).get('content', '')
+                print(f"    📥 最终响应长度: {len(result_text)} 字符")
+                
+                # 如果返回空内容，使用原始响应
+                if not result_text or len(result_text.strip()) == 0:
+                    print(f"    ⚠ 模型返回空内容，使用原始响应（长度: {len(original_content)}）")
+                    return original_content if original_content else '{"error": "模型返回空内容"}'
+                
+                return result_text
+                
+            except Exception as e:
+                print(f"    ✗ 最终响应调用失败: {e}")
+                return original_content if original_content else '{"error": "工具调用异常"}'
         
-        return response['message']['content']
+        return original_content
     
     def analyze_with_ai(self, news_data: Dict[str, Any]) -> Dict[str, Any]:
         """
