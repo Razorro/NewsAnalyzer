@@ -16,4 +16,4 @@ feedparser>=6.0.0
 ollama>=0.6.1
 tweepy>=4.12.0
 flask>=2.3.0
-duckduckgo-search>=6.0.0
+ddgs>=6.0.0

@@ -41,12 +41,23 @@ class WebSearcher:
     def _check_dependencies(self):
         """检查依赖是否已安装"""
         try:
-            from duckduckgo_search import DDGS
+            # 尝试使用新包名 ddgs
+            from ddgs import DDGS
             self.DDGS = DDGS
         except ImportError:
-            raise ImportError(
-                "请安装 duckduckgo-search 库: pip install duckduckgo-search"
-            )
+            try:
+                # 回退到旧包名
+                from duckduckgo_search import DDGS
+                self.DDGS = DDGS
+                import warnings
+                warnings.warn(
+                    "duckduckgo_search 包已重命名为 ddgs，请运行: pip install ddgs",
+                    DeprecationWarning
+                )
+            except ImportError:
+                raise ImportError(
+                    "请安装 ddgs 库: pip install ddgs"
+                )
     
     def search(self, query: str, max_results: Optional[int] = None) -> str:
         """
