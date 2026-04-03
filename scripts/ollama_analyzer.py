@@ -2,6 +2,7 @@
 Ollama AI全权分析模块
 使用Ollama云模型进行完整地缘政治新闻分析
 支持URL内容获取和深度分析
+支持工具调用（网页搜索）
 """
 import json
 import os
@@ -18,41 +19,68 @@ except ImportError:
     ThemeManager = None  # 避免Pylance警告
     print("警告: theme_manager未找到，将使用默认提示词")
 
+# 导入网页搜索工具
+try:
+    from web_searcher import WebSearcher
+    HAS_WEB_SEARCHER = True
+except ImportError:
+    HAS_WEB_SEARCHER = False
+    WebSearcher = None
+    print("警告: web_searcher未找到，网页搜索功能不可用")
+
 
 class OllamaAnalyzer:
     """使用Ollama AI全权分析地缘政治新闻"""
     
-    def __init__(self, model: str = "gpt-oss:120b-cloud", config_path: str = ""):
+    def __init__(self, model: str = "", config_path: str = ""):
         """
         初始化Ollama分析器
         
         Args:
-            model: Ollama模型名称（向后兼容）
+            model: Ollama模型名称（为空时从配置文件读取）
             config_path: 配置文件路径
         """
-        self.model = model
         self.config = self._load_config(config_path)
         
         # 加载模型配置（支持分离的翻译和分析模型）
         ollama_settings = self.config.get("ollama_settings", {})
         
-        # 从配置加载不同用途的模型
-        self.analysis_model = ollama_settings.get("analysis_model", {}).get("name", model)
-        self.translation_model = ollama_settings.get("translation_model", {}).get("name", model)
-        self.summary_model = ollama_settings.get("summary_model", {}).get("name", model)
+        # 从配置加载不同用途的模型，如果配置为空则使用默认值
+        default_model = "glm-4.6:cloud"
+        self.analysis_model = ollama_settings.get("analysis_model", {}).get("name", default_model)
+        self.translation_model = ollama_settings.get("translation_model", {}).get("name", default_model)
+        self.summary_model = ollama_settings.get("summary_model", {}).get("name", default_model)
         
         # 如果没有ollama_settings配置，尝试从旧的ollama_models配置加载
         if not ollama_settings:
             ollama_models = self.config.get("ollama_models", {})
-            self.analysis_model = ollama_models.get("analysis", model)
-            self.translation_model = ollama_models.get("translation", model)
-            self.summary_model = ollama_models.get("trend_summary", model)
+            self.analysis_model = ollama_models.get("analysis", default_model)
+            self.translation_model = ollama_models.get("translation", default_model)
+            self.summary_model = ollama_models.get("trend_summary", default_model)
+        
+        # 兼容旧的model参数
+        self.model = model if model else self.analysis_model
+        
+        # 加载网页搜索配置
+        search_config = ollama_settings.get("web_search", {})
+        self.search_enabled = search_config.get("enabled", True) and HAS_WEB_SEARCHER
+        self.search_max_results = search_config.get("max_results", 5)
+        
+        # 初始化网页搜索器
+        self.searcher = None
+        if self.search_enabled:
+            try:
+                self.searcher = WebSearcher(max_results=self.search_max_results)
+                print(f"  ✓ 网页搜索工具已启用（最大结果数: {self.search_max_results}）")
+            except Exception as e:
+                print(f"  ⚠ 网页搜索工具初始化失败: {e}")
+                self.search_enabled = False
         
         # 加载debug配置
         self.debug_config = self.config.get("debug", {})
         self.debug_enabled = self.debug_config.get("enabled", False)
         self.debug_log_content = self.debug_config.get("log_url_content", False)
-        self.debug_log_prompt = self.debug_config.get("log_prompt", False)  # 新增：是否记录提示词
+        self.debug_log_prompt = self.debug_config.get("log_prompt", False)
         self.debug_log_file = self.debug_config.get("log_file", "logs/debug_url_content.log")
         self.debug_prompt_log_file = self.debug_config.get("prompt_log_file", "logs/debug_prompts.log")
         self.debug_max_length = self.debug_config.get("max_content_length", 500)
@@ -64,6 +92,12 @@ class OllamaAnalyzer:
         # 初始化提示词日志
         if self.debug_enabled and self.debug_log_prompt:
             self._init_prompt_log()
+        
+        # 打印模型配置信息
+        print(f"  模型配置:")
+        print(f"    分析模型: {self.analysis_model}")
+        print(f"    翻译模型: {self.translation_model}")
+        print(f"    总结模型: {self.summary_model}")
     
     def _init_debug_log(self):
         """初始化debug日志文件"""
@@ -179,6 +213,123 @@ class OllamaAnalyzer:
         
         return {}
     
+    def check_model_health(self, model: str) -> bool:
+        """
+        检查模型是否可用
+        
+        Args:
+            model: 模型名称
+            
+        Returns:
+            模型是否可用
+        """
+        try:
+            print(f"    检查模型健康状态: {model}")
+            response = ollama.chat(
+                model=model,
+                messages=[{"role": "user", "content": "test"}],
+                options={"num_predict": 1}
+            )
+            print(f"    ✓ 模型 {model} 可用")
+            return True
+        except Exception as e:
+            print(f"    ✗ 模型 {model} 不可用: {e}")
+            return False
+    
+    def validate_models(self) -> Dict[str, bool]:
+        """
+        验证所有配置的模型是否可用
+        
+        Returns:
+            各模型的健康状态字典
+        """
+        print(f"  验证模型健康状态...")
+        
+        models_to_check = [
+            ("分析模型", self.analysis_model),
+            ("翻译模型", self.translation_model),
+            ("总结模型", self.summary_model)
+        ]
+        
+        health_status = {}
+        all_healthy = True
+        
+        for name, model in models_to_check:
+            is_healthy = self.check_model_health(model)
+            health_status[name] = is_healthy
+            if not is_healthy:
+                all_healthy = False
+                print(f"    ⚠ {name} ({model}) 不可用")
+        
+        if all_healthy:
+            print(f"  ✓ 所有模型健康检查通过")
+        else:
+            print(f"  ⚠ 部分模型不可用，请检查Ollama服务或模型配置")
+        
+        return health_status
+    
+    def _chat_with_tools(self, model: str, messages: List[Dict], use_search: bool = False) -> str:
+        """
+        带工具调用的聊天
+        
+        Args:
+            model: 模型名称
+            messages: 消息列表
+            use_search: 是否启用搜索工具
+            
+        Returns:
+            模型响应内容
+        """
+        kwargs = {
+            "model": model,
+            "messages": messages,
+            "options": {"temperature": 0.3}
+        }
+        
+        # 仅对分析模型启用搜索工具
+        if use_search and self.search_enabled and self.searcher and model == self.analysis_model:
+            kwargs["tools"] = [self.searcher.get_tool_definition()]
+        
+        response = ollama.chat(**kwargs)
+        
+        # 处理工具调用
+        if response.get('message', {}).get('tool_calls'):
+            print(f"    🔧 模型请求调用工具...")
+            
+            # 添加模型的响应到消息列表
+            messages.append(response['message'])
+            
+            # 执行工具调用
+            for tool_call in response['message']['tool_calls']:
+                function_name = tool_call['function']['name']
+                arguments = tool_call['function']['arguments']
+                
+                print(f"    执行工具: {function_name}({arguments})")
+                
+                if function_name == 'web_search' and self.searcher:
+                    # 执行搜索
+                    search_results = self.searcher.search(
+                        query=arguments.get('query', ''),
+                        max_results=arguments.get('num_results', self.search_max_results)
+                    )
+                    
+                    # 将搜索结果添加到消息列表
+                    messages.append({
+                        "role": "tool",
+                        "content": search_results
+                    })
+            
+            # 再次调用模型获取最终回答
+            print(f"    🔄 将搜索结果返回模型...")
+            final_response = ollama.chat(
+                model=model,
+                messages=messages,
+                options={"temperature": 0.3}
+            )
+            return final_response['message']['content']
+        
+        return response['message']['content']
+    
     def analyze_with_ai(self, news_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         使用Ollama AI全权分析新闻（改进版）
@@ -207,10 +358,11 @@ class OllamaAnalyzer:
             self._log_prompt(prompt, len(enriched_articles), self.analysis_model)
         
         try:
-            # 调用Ollama API
+            # 调用Ollama API（支持工具调用）
             print(f"  正在使用分析模型({self.analysis_model})分析{len(enriched_articles)}篇文章...")
             
-            response = ollama.chat(
+            # 使用带工具调用的聊天方法
+            ai_response = self._chat_with_tools(
                 model=self.model,
                 messages=[
                     {
@@ -218,13 +370,8 @@ class OllamaAnalyzer:
                         'content': prompt
                     }
                 ],
-                options={
-                    "temperature": 0.3  # 降低temperature以获得更一致的分析
-                }
+                use_search=True  # 启用搜索工具
             )
-            
-            # 解析响应
-            ai_response = response['message']['content']
             
             # 提取JSON
             analysis_result = self._extract_json_from_response(ai_response)

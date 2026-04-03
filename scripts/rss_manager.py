@@ -713,32 +713,47 @@ class RSSManager:
             # 调用Ollama分析
             analysis_result = self._call_ollama_analysis(content, title)
             
-            # 判断是否为重要事件
-            is_important = self._is_important_event(analysis_result)
+            # 检测是否为默认分析结果（分析失败）
+            is_default_analysis = (
+                analysis_result.get('key_insights') == ['分析未完成'] or
+                analysis_result.get('chinese_summary') == '等待分析...' or
+                analysis_result.get('classification', {}).get('category') == 'unknown'
+            )
             
-            # 保存分析结果
-            cursor.execute('''
-                UPDATE news 
-                SET ollama_analysis = ?, analysis_status = ?, is_important = ?
-                WHERE id = ?
-            ''', (json.dumps(analysis_result, ensure_ascii=False), 'completed', 1 if is_important else 0, news_id))
-            
-            conn.commit()
-            
-            # 通知前端
-            self._notify_news_analyzed(news_id, article, analysis_result)
-            
-            # 通知队列更新（分析完成）
-            self._notify_queue_update()
-            
-            # 如果是重要事件，更新整体情绪
-            if is_important:
-                self._update_overall_sentiment(news_id, analysis_result)
-            
-            print(f"  ✓ 分析完成: {title[:30]}...")
+            if is_default_analysis:
+                # 分析失败，设置为 'failed'
+                print(f"  ✗ 分析失败（返回默认值）: {title[:30]}...")
+                cursor.execute('UPDATE news SET analysis_status = ? WHERE id = ?', ('failed', news_id))
+                conn.commit()
+                self._notify_queue_update()
+            else:
+                # 分析成功，保存结果
+                # 判断是否为重要事件
+                is_important = self._is_important_event(analysis_result)
+                
+                # 保存分析结果
+                cursor.execute('''
+                    UPDATE news 
+                    SET ollama_analysis = ?, analysis_status = ?, is_important = ?
+                    WHERE id = ?
+                ''', (json.dumps(analysis_result, ensure_ascii=False), 'completed', 1 if is_important else 0, news_id))
+                
+                conn.commit()
+                
+                # 通知前端
+                self._notify_news_analyzed(news_id, article, analysis_result)
+                
+                # 通知队列更新（分析完成）
+                self._notify_queue_update()
+                
+                # 如果是重要事件，更新整体情绪
+                if is_important:
+                    self._update_overall_sentiment(news_id, analysis_result)
+                
+                print(f"  ✓ 分析完成: {title[:30]}...")
             
         except Exception as e:
-            print(f"  ✗ 分析失败 {news_id}: {e}")
+            print(f"  ✗ 分析异常 {news_id}: {e}")
             
             cursor.execute('UPDATE news SET analysis_status = ? WHERE id = ?', ('failed', news_id))
             conn.commit()
@@ -783,28 +798,51 @@ class RSSManager:
     "chinese_summary": "一句话中文摘要"
 }}"""
 
+        model_name = self.ollama_analyzer.translation_model
+        
         try:
             import ollama
             
+            print(f"    📡 调用Ollama模型: {model_name}")
+            print(f"    📝 标题: {title[:50]}...")
+            
             response = ollama.chat(
-                model=self.ollama_analyzer.translation_model,
+                model=model_name,
                 messages=[{'role': 'user', 'content': prompt}],
                 options={"temperature": 0.3}
             )
             
             result_text = response['message']['content']
             
+            print(f"    📥 响应长度: {len(result_text)} 字符")
+            
             # 提取JSON
             import re
             json_match = re.search(r'\{[\s\S]*\}', result_text)
             if json_match:
-                return json.loads(json_match.group())
+                json_str = json_match.group()
+                try:
+                    result = json.loads(json_str)
+                    print(f"    ✓ JSON解析成功")
+                    return result
+                except json.JSONDecodeError as je:
+                    print(f"    ✗ JSON解析失败: {je}")
+                    print(f"    📄 原始响应: {result_text[:200]}...")
+                    return self._get_default_analysis()
+            else:
+                print(f"    ✗ 未找到JSON结构")
+                print(f"    📄 原始响应: {result_text[:200]}...")
+                return self._get_default_analysis()
             
+        except ImportError as e:
+            print(f"    ✗ Ollama模块导入失败: {e}")
+            print(f"    💡 请确保已安装: pip install ollama")
+            return self._get_default_analysis()
         except Exception as e:
-            print(f"Ollama调用失败: {e}")
-        
-        # 返回默认值
-        return self._get_default_analysis()
+            print(f"    ✗ Ollama调用异常: {type(e).__name__}: {e}")
+            print(f"    🔍 模型: {model_name}")
+            print(f"    🔍 标题: {title[:50]}...")
+            return self._get_default_analysis()
     
     def _get_default_analysis(self) -> Dict:
         """返回默认分析结果"""

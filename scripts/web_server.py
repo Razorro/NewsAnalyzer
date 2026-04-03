@@ -1001,10 +1001,19 @@ def main():
     # 创建仪表盘模板
     create_dashboard_template()
     
-    # 创建测试用的NewsAnalyzer实例
-    from news_analyzer import OilAnalyzer
+    # 创建简单的测试分析器包装类
+    class TestAnalyzer:
+        def __init__(self):
+            self.last_analysis_file = "data/last_analysis.json"
+            self.cold_start_data = {}
+        
+        def load_cold_start_data(self):
+            return {}
+        
+        def get_timeline_data(self, max_items=10):
+            return []
     
-    analyzer = OilAnalyzer()
+    analyzer = TestAnalyzer()
     server = WebServer(analyzer, host="0.0.0.0", port=5000)
     
     # 启动服务器
