@@ -96,7 +96,7 @@ ollama serve
 python scripts/start_dashboard.py
 ```
 
-访问地址：http://localhost:5000
+访问地址：http://localhost:5000/rss
 
 **功能包括**：
 - 📊 实时威胁等级监控（0-10分）

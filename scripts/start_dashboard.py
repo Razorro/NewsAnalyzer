@@ -112,7 +112,6 @@ def main():
     print("🚀 启动完成！")
     print("=" * 60)
     print(f"\n📡 访问地址:")
-    print(f"   原有仪表盘: http://localhost:5000/")
     print(f"   RSS新闻监控: http://localhost:5000/rss")
     print(f"\n⏰ 定时拉取: 每 {fetch_interval} 分钟")
     print(f"   首次拉取将在3秒后开始...")
